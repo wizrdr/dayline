@@ -70,9 +70,9 @@ describe('pager gesture resolve', () => {
     expect(resolve(back, WIDTH)).toBe('snap')
   })
 
-  it('keeps the previous velocity when two samples share a timestamp', () => {
+  it('measures velocity over the trailing window, so a duplicate timestamp does not break it', () => {
     const g = drag([[-20, 0, 10], [-40, 0, 30], [-41, 0, 30]])
-    expect(g.phase === 'horizontal' && g.vx).toBe(-1)
+    expect(g.phase === 'horizontal' && g.vx).toBeCloseTo(-1.05, 2)
   })
 })
 
