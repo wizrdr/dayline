@@ -1,7 +1,7 @@
 import { WEEKDAY_SHORT_RU, addDaysISO, fromISODate, isoWeekday, todayISO, weekDaysAround } from '@/domain/dates'
 import type { ISODate } from '@/domain/types'
 import { IconButton, cn } from '@/ui'
-import { useSwipe } from './useSwipe'
+import { useStripSwipe } from './useStripSwipe'
 
 export interface DateStripProps {
   date: ISODate
@@ -12,14 +12,14 @@ export function DateStrip({ date, onChange }: DateStripProps) {
   const today = todayISO()
   const days = weekDaysAround(date)
   const shiftWeek = (weeks: number) => onChange(addDaysISO(date, weeks * 7))
-  const swipe = useSwipe(() => shiftWeek(1), () => shiftWeek(-1), { ignoreInteractive: false })
+  const swipe = useStripSwipe((dir) => shiftWeek(dir))
 
   return (
     <div className="flex items-center py-1">
       <IconButton label="Предыдущая неделя" onClick={() => shiftWeek(-1)}>
         <span aria-hidden className="text-xl leading-none">‹</span>
       </IconButton>
-      <div data-testid="date-strip" className="flex flex-1 justify-between" {...swipe}>
+      <div data-testid="date-strip" className="flex flex-1 justify-between touch-pan-y" {...swipe}>
         {days.map((d) => {
           const selected = d === date
           const isToday = d === today

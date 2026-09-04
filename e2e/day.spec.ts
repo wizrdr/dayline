@@ -12,14 +12,28 @@ async function createTask(page: Page, title: string, time?: string, durationLabe
   await page.getByRole('button', { name: 'Сохранить' }).click()
 }
 
-// synthetic pointer events on the day root: a real touch swipe is not available in chromium's headless mobile emulation
+const panel = (page: Page) => page.getByTestId('day-panel')
+
+type TouchType = 'touchstart' | 'touchmove' | 'touchend'
+
+// chromium's headless touch emulation has no drag primitive, so the gesture is dispatched as raw TouchEvents on the track
+async function touchTrack(page: Page, type: TouchType, x: number, y: number) {
+  await page.getByTestId('day-track').evaluate(
+    (el, { type, x, y }) => {
+      const t = new Touch({ identifier: 1, target: el, clientX: x, clientY: y, pageX: x, pageY: y })
+      const list = type === 'touchend' ? [] : [t]
+      el.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: list, targetTouches: list, changedTouches: [t] }))
+    },
+    { type, x, y },
+  )
+}
+
 async function swipeDay(page: Page, dx: number) {
-  await page.getByTestId('day-root').evaluate((el, dx) => {
-    const base = { bubbles: true, pointerId: 7, pointerType: 'touch', isPrimary: true, clientY: 400 }
-    el.dispatchEvent(new PointerEvent('pointerdown', { ...base, clientX: 200 }))
-    el.dispatchEvent(new PointerEvent('pointermove', { ...base, clientX: 200 + dx / 2 }))
-    el.dispatchEvent(new PointerEvent('pointerup', { ...base, clientX: 200 + dx }))
-  }, dx)
+  const step = Math.sign(dx) * 12
+  await touchTrack(page, 'touchstart', 200, 400)
+  await touchTrack(page, 'touchmove', 200 + step, 401)
+  await touchTrack(page, 'touchmove', 200 + dx, 402)
+  await touchTrack(page, 'touchend', 200 + dx, 402)
 }
 
 const DENSE_DAY = JSON.stringify({
@@ -74,7 +88,7 @@ test('create a timed task, see it in the day list, mark it done', async ({ page 
   const start = ((hour + 3) % 24) * 60
   await createTask(page, 'Anki', hhmm(start))
 
-  const list = page.getByTestId('day-list')
+  const list = panel(page).getByTestId('day-list')
   const title = list.getByText('Anki')
   await expect(title).toBeVisible()
   await expect(list.getByText(`${hhmm(start)}–${hhmm(start + 60)}`)).toBeVisible()
@@ -83,14 +97,14 @@ test('create a timed task, see it in the day list, mark it done', async ({ page 
   await expect(title).toHaveClass(/line-through/)
 
   await page.reload()
-  await expect(page.getByTestId('day-list').getByText('Anki')).toHaveClass(/line-through/)
+  await expect(panel(page).getByTestId('day-list').getByText('Anki')).toHaveClass(/line-through/)
 })
 
 test('task without time lands under «Без времени»', async ({ page }) => {
   await page.goto('/')
   await createTask(page, 'Позвонить')
-  await expect(page.getByText('Без времени', { exact: true })).toBeVisible()
-  await expect(page.getByTestId('untimed-list').getByText('Позвонить')).toBeVisible()
+  await expect(panel(page).getByText('Без времени', { exact: true })).toBeVisible()
+  await expect(panel(page).getByTestId('untimed-list').getByText('Позвонить')).toBeVisible()
 })
 
 test('a task running right now becomes the «Сейчас» hero', async ({ page }) => {
@@ -98,11 +112,11 @@ test('a task running right now becomes the «Сейчас» hero', async ({ page
   const start = new Date().getHours() * 60
   await createTask(page, 'Фокус', hhmm(start), '1 ч 30 мин')
 
-  const hero = page.getByTestId('hero')
+  const hero = panel(page).getByTestId('hero')
   await expect(hero.getByText('Сейчас')).toBeVisible()
   await expect(hero.getByText('Фокус')).toBeVisible()
   await expect(hero.getByRole('button', { name: 'Готово' })).toBeVisible()
-  await expect(page.getByTestId('day-list')).toHaveCount(0)
+  await expect(panel(page).getByTestId('day-list')).toHaveCount(0)
 
   await hero.getByText('Фокус').click()
   await expect(page.getByRole('dialog', { name: 'Задача' })).toBeVisible()
@@ -117,27 +131,75 @@ test('focus layout screenshot', async ({ page }, testInfo) => {
   await createTask(page, 'italki: урок английского', hhmm(((hour + 2) % 24) * 60), '45 мин')
   await createTask(page, 'Ужин', hhmm(((hour + 4) % 24) * 60), '45 мин')
   await createTask(page, 'Позвонить маме')
-  await expect(page.getByTestId('hero').getByText('Сейчас')).toBeVisible()
-  await expect(page.getByTestId('untimed-list')).toBeVisible()
+  await expect(panel(page).getByTestId('hero').getByText('Сейчас')).toBeVisible()
+  await expect(panel(page).getByTestId('untimed-list')).toBeVisible()
   await page.screenshot({ path: 'test-results/day-focus.png' })
 })
 
-test('swiping the day root switches the day in the natural direction', async ({ page }) => {
+test('swiping the pager slides to the adjacent day and follows the finger', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'iphone')
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /Сегодня/ })).toBeVisible()
+  const track = page.getByTestId('day-track')
+  const width = (await track.boundingBox())!.width
 
-  await swipeDay(page, -120)
+  await touchTrack(page, 'touchstart', 300, 400)
+  await touchTrack(page, 'touchmove', 288, 401)
+  await touchTrack(page, 'touchmove', 180, 403)
+  const mid = await track.evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41)
+  expect(Math.round(mid)).toBe(Math.round(-width - 120))
+  await page.screenshot({ path: 'test-results/day-swipe-mid.png' })
+
+  await touchTrack(page, 'touchend', 180, 403)
   await expect(page.getByRole('heading', { name: 'Завтра' })).toBeVisible()
-  await expect(page.getByText('Расписание').or(page.getByText('День свободен'))).toBeVisible()
+  await expect(panel(page).getByText('Расписание').or(panel(page).getByText('День свободен'))).toBeVisible()
+  await expect.poll(() => track.evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41)).toBe(-width)
+  await page.screenshot({ path: 'test-results/day-swipe-after.png' })
 
-  await swipeDay(page, 120)
-  await swipeDay(page, 120)
+  await swipeDay(page, 160)
+  await expect(page.getByRole('heading', { name: 'Сегодня' })).toBeVisible()
+  await swipeDay(page, 160)
   await expect(page.getByRole('heading', { name: 'Вчера' })).toBeVisible()
 
-  // a short or vertical-dominant gesture does nothing
-  await swipeDay(page, 30)
+  // a short, slow drag snaps back (a fast flick of the same length would legitimately commit)
+  await touchTrack(page, 'touchstart', 200, 400)
+  await touchTrack(page, 'touchmove', 212, 401)
+  await page.waitForTimeout(150)
+  await touchTrack(page, 'touchmove', 230, 402)
+  await page.waitForTimeout(150)
+  await touchTrack(page, 'touchend', 230, 402)
+  await page.waitForTimeout(300)
   await expect(page.getByRole('heading', { name: 'Вчера' })).toBeVisible()
 
+  // vertical gesture is a scroll, not a swipe, even when it drifts sideways later
+  await touchTrack(page, 'touchstart', 200, 400)
+  await touchTrack(page, 'touchmove', 202, 420)
+  await touchTrack(page, 'touchmove', 60, 600)
+  await touchTrack(page, 'touchend', 60, 600)
+  await page.waitForTimeout(300)
+  await expect(page.getByRole('heading', { name: 'Вчера' })).toBeVisible()
+  expect(await track.evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41)).toBe(-width)
+
+  await page.getByRole('button', { name: 'Сегодня' }).click()
+  await expect(page.getByRole('heading', { name: 'Сегодня' })).toBeVisible()
+})
+
+test('the date strip switches adjacent days with a slide and other days directly', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: /Сегодня/ })).toBeVisible()
+  const today = new Date()
+  const iso = (d: Date) => d.toISOString().slice(0, 10)
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1, 12)
+  const strip = page.getByTestId('date-strip')
+
+  if (await strip.getByLabel(iso(tomorrow)).count()) {
+    await strip.getByLabel(iso(tomorrow)).click()
+    await expect(page.getByRole('heading', { name: 'Завтра' })).toBeVisible()
+    await expect(strip.getByLabel(iso(tomorrow))).toHaveAttribute('aria-pressed', 'true')
+  }
+
+  await page.getByRole('button', { name: 'Следующая неделя' }).click()
+  await expect(page.getByRole('heading', { name: /Сегодня|Завтра/ })).toHaveCount(0)
   await page.getByRole('button', { name: 'Сегодня' }).click()
   await expect(page.getByRole('heading', { name: 'Сегодня' })).toBeVisible()
 })
@@ -147,7 +209,7 @@ test('the note shows up as a second line in the row', async ({ page }) => {
   const hour = new Date().getHours()
   await createTask(page, 'Раньше', hhmm(((hour + 2) % 24) * 60))
   await createTask(page, 'Работа', hhmm(((hour + 3) % 24) * 60), undefined, 'Стендап в 10:00')
-  const row = page.getByTestId('day-list').getByTestId('day-row').filter({ hasText: 'Работа' })
+  const row = panel(page).getByTestId('day-list').getByTestId('day-row').filter({ hasText: 'Работа' })
   await expect(row.getByTestId('row-note')).toHaveText('Стендап в 10:00')
 })
 
@@ -159,10 +221,10 @@ test('dense day: past section collapses, hero and note render in both themes', a
   if (hour >= 8 && hour < 23) {
     const summary = page.getByRole('button', { name: /раньше · \d+ выполнено/ })
     await expect(summary).toBeVisible()
-    await expect(page.getByText('Раньше сегодня')).toBeVisible()
+    await expect(panel(page).getByText('Раньше сегодня')).toBeVisible()
   }
-  await expect(page.getByTestId('hero')).toBeVisible()
-  await expect(page.getByTestId('untimed-list').getByTestId('row-note')).toHaveText('Уточнить лимит на перевод')
+  await expect(panel(page).getByTestId('hero')).toBeVisible()
+  await expect(panel(page).getByTestId('untimed-list').getByTestId('row-note')).toHaveText('Уточнить лимит на перевод')
   expect(await page.evaluate(() => (window as unknown as { __sawEmpty: boolean }).__sawEmpty)).toBe(false)
 
   await page.emulateMedia({ colorScheme: 'dark' })
@@ -172,8 +234,8 @@ test('dense day: past section collapses, hero and note render in both themes', a
 
   // finishing the current block promotes the next one: the tinted «Далее» card
   if (hour >= 7 && hour < 23) {
-    await page.getByTestId('hero').getByRole('button', { name: 'Готово' }).click()
-    await expect(page.getByTestId('hero').getByText(/Далее в/)).toBeVisible()
+    await panel(page).getByTestId('hero').getByRole('button', { name: 'Готово' }).click()
+    await expect(panel(page).getByTestId('hero').getByText(/Далее в/)).toBeVisible()
     await page.emulateMedia({ colorScheme: 'dark' })
     await page.screenshot({ path: 'test-results/day-dense-next-dark.png' })
     await page.emulateMedia({ colorScheme: 'light' })
@@ -183,14 +245,14 @@ test('dense day: past section collapses, hero and note render in both themes', a
   const summary = page.getByRole('button', { name: /раньше · \d+ выполнено/ })
   if (await summary.isVisible()) {
     await summary.click()
-    await expect(page.getByTestId('past-list')).toBeVisible()
+    await expect(panel(page).getByTestId('past-list')).toBeVisible()
     await page.emulateMedia({ colorScheme: 'dark' })
     await page.screenshot({ path: 'test-results/day-dense-dark-expanded.png' })
   }
 
   await swipeDay(page, -120)
   await expect(page.getByRole('heading', { name: 'Завтра' })).toBeVisible()
-  await expect(page.getByText('Расписание')).toBeVisible()
+  await expect(panel(page).getByText('Расписание')).toBeVisible()
   await page.waitForTimeout(300)
   await page.screenshot({ path: 'test-results/day-dense-tomorrow-dark.png' })
 })
