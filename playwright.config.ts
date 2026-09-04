@@ -6,7 +6,7 @@ export default defineConfig({
   use: { baseURL: 'http://localhost:5173' },
   webServer: { command: 'npm run dev', url: 'http://localhost:5173', reuseExistingServer: true },
   projects: [
-    { name: 'iphone', use: { ...devices['iPhone 14'] } },
+    { name: 'iphone', use: { ...devices['iPhone 14'], browserName: 'chromium' } },
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
   ],
 })

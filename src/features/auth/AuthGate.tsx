@@ -15,7 +15,7 @@ function SetupCard() {
         </p>
         <p className="text-sm text-muted">
           Скопируйте <code className="text-text">.env.example</code> в <code className="text-text">.env</code>,
-          вставьте значения из проекта Supabase и перезапустите dev-сервер. Подробнее:{' '}
+          вставьте значения из проекта Supabase и перезапустите dev-сервер. Для сайта на GitHub Pages те же значения задаются как repo variables. Подробнее:{' '}
           <code className="text-text">docs/supabase-setup.md</code>.
         </p>
       </Card>

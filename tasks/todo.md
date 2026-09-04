@@ -14,15 +14,15 @@
 - [x] Dexie schema + `sync.ts` + vitest на fake Supabase
 - [x] Supabase: миграция 0001 (таблицы, RLS), `lib/supabase.ts`, magic-link вход
 - [x] Domain: `recurrence.ts`, `layout.ts` + тесты
-- [x] Экран «День» + TaskSheet (сабагент закончил 14:20; tsc чистый, 116 тестов; в браузере НЕ открывалось)
-- [~] GitHub repo создан (wizrdr/dayline, private), workflow написан; ещё нет коммита, пуша и включённых Pages
-- [ ] Wizard для Максима: проект Supabase, ключи, redirect URL
+- [x] Экран «День» + TaskSheet; проверено в браузере (Playwright, viewport iPhone): создание задач, колонки при пересечении, «без времени»
+- [x] GitHub repo (wizrdr/dayline, ПУБЛИЧНЫЙ — Pages на free-тарифе только так) + Actions деплой; сайт https://wizrdr.github.io/dayline/ открывается (04.09 16:10)
+- [ ] Wizard для Максима: проект Supabase, ключи, redirect URL (Максим отложил, 04.09)
 - [ ] ПРОВЕРКА: задача с Mac видна на iPhone без перезагрузки; офлайн-правка догоняет
 
 ## Шаг 2 — повторы и inbox
-- [ ] Серии в шторке (WeekdayPicker), overrides «сделано»/перенос одного дня
+- [x] Серии в шторке (WeekdayPicker), overrides «сделано»/перенос/пропуск одного дня
 - [x] Inbox + назначение на день (сделано в шаге 1)
-- [ ] Перетаскивание по таймлайну (pointer events)
+- [~] Перетаскивание по таймлайну (pointer events) — код и unit-тесты есть, на реальном touch НЕ проверено
 - [ ] Завести ритм дня: Anki 09:00 ежедн., логистика пн–чт 18:00, большой блок сб 11:00, ревью вс 21:00
 - [ ] ПРОВЕРКА: vitest recurrence; на таймлайне правильные дни
 
@@ -38,7 +38,7 @@
 - [ ] ПРОВЕРКА: push приходит на iPhone при закрытом приложении
 
 ## Шаг 5 — PWA
-- [ ] Manifest, иконки, offline precache
+- [x] Manifest, иконки, offline precache (SW регистрируется на живом сайте)
 - [ ] Playwright: viewport iPhone, задачи не перекрываются
 - [ ] ПРОВЕРКА: установка на экран iPhone и в Dock Mac
 
