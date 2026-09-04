@@ -16,7 +16,7 @@
 - [x] Domain: `recurrence.ts`, `layout.ts` + тесты
 - [x] Экран «День» + TaskSheet; проверено в браузере (Playwright, viewport iPhone): создание задач, колонки при пересечении, «без времени»
 - [x] GitHub repo (wizrdr/dayline, ПУБЛИЧНЫЙ — Pages на free-тарифе только так) + Actions деплой; сайт https://wizrdr.github.io/dayline/ открывается (04.09 16:10)
-- [ ] Wizard для Максима: проект Supabase, ключи, redirect URL (Максим отложил, 04.09)
+- [x] Supabase настроен 04.09 17:10: проект ghuhochssdbzyxextlso (Frankfurt), миграции накачены, функции ics/remind задеплоены, secrets и remind_config заданы, cron бьёт в remind каждую минуту (проверено: 200), auth site/redirect URL заданы, ключи в .env и repo variables
 - [ ] ПРОВЕРКА: задача с Mac видна на iPhone без перезагрузки; офлайн-правка догоняет
 
 ## Шаг 2 — повторы и inbox
@@ -41,6 +41,10 @@
 - [x] Manifest, иконки, offline precache (SW регистрируется на живом сайте)
 - [x] Playwright: `e2e/day.spec.ts` + `e2e/smoke.spec.ts` на iPhone/desktop (Chromium), 8 тестов зелёные
 - [ ] ПРОВЕРКА: установка на экран iPhone и в Dock Mac
+
+## Состояние на 04.09.2026, 17:10
+
+Бэкенд полностью настроен (см. галочку про Supabase в шаге 1). Осталось от Максима: первый вход по magic link на Mac и iPhone, установка PWA, включение уведомлений, ics-ссылка календаря. После первого входа — выключить регистрацию (`disable_signup`) через Management API. Отозвать CLI-токен `dayline-cli` после настройки.
 
 ## Состояние на 04.09.2026, 16:40
 
