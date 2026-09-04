@@ -1,23 +1,31 @@
 import { expect, test, type Page } from '@playwright/test'
 
-type TouchType = 'touchstart' | 'touchmove' | 'touchend'
+type PointerType = 'pointerdown' | 'pointermove' | 'pointerup'
 
-async function touch(page: Page, type: TouchType, x: number, y: number) {
-  const point = { identifier: 1, clientX: x, clientY: y, pageX: x, pageY: y }
-  const list = type === 'touchend' ? [] : [point]
-  // WebKit has no Touch constructor in page scripts; Playwright builds the event natively
-  await page.getByTestId('day-panel').dispatchEvent(type, { touches: list, targetTouches: list, changedTouches: [point], bubbles: true, cancelable: true })
+// Playwright builds a real PointerEvent for pointer event names, in WebKit too
+async function pointer(page: Page, type: PointerType, x: number, y: number) {
+  await page.getByTestId('day-panel').dispatchEvent(type, {
+    pointerId: 1,
+    pointerType: 'touch',
+    isPrimary: true,
+    button: 0,
+    buttons: type === 'pointerup' ? 0 : 1,
+    clientX: x,
+    clientY: y,
+    bubbles: true,
+    cancelable: true,
+  })
 }
 
 async function swipe(page: Page, dx: number) {
   const s = Math.sign(dx) * 12
-  await touch(page, 'touchstart', 200, 400)
+  await pointer(page, 'pointerdown', 200, 400)
   await page.waitForTimeout(16)
-  await touch(page, 'touchmove', 200 + s, 401)
+  await pointer(page, 'pointermove', 200 + s, 401)
   await page.waitForTimeout(16)
-  await touch(page, 'touchmove', 200 + dx, 402)
+  await pointer(page, 'pointermove', 200 + dx, 402)
   await page.waitForTimeout(16)
-  await touch(page, 'touchend', 200 + dx, 402)
+  await pointer(page, 'pointerup', 200 + dx, 402)
   await page.waitForTimeout(500)
 }
 

@@ -17,7 +17,7 @@ export function DayPager({ date, pager, renderDay }: DayPagerProps) {
       <div
         ref={(el) => pager.setTrack(el)}
         data-testid="day-track"
-        className="flex h-full w-full overscroll-x-none will-change-transform"
+        className="flex h-full w-full touch-pan-y overscroll-x-none will-change-transform"
         style={{ transform: REST }}
       >
         {dates.map((d, i) => (

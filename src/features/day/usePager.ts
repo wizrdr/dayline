@@ -32,6 +32,7 @@ export function usePager({ date, onChange }: PagerOptions): Pager {
   const settle = useRef<(() => void) | null>(null)
   const settleAt = useRef(0)
   const queued = useRef<-1 | 1 | null>(null)
+  const suppressClick = useRef(false)
   useEffect(() => {
     latest.current = { date, onChange }
   })
@@ -76,52 +77,71 @@ export function usePager({ date, onChange }: PagerOptions): Pager {
 
     const finish = () => {
       const outcome = resolve(gesture.current, track.clientWidth)
+      suppressClick.current = gesture.current.phase === 'horizontal'
       gesture.current = IDLE
       if (outcome === null) return
       if (outcome === 'snap') return slideTo(REST, null)
       go.current(outcome === 'next' ? 1 : -1)
     }
 
+    let pointerId: number | null = null
+    // pointer events + touch-action: pan-y let Safari arbitrate: vertical pans cancel us, horizontal moves never start a native scroll
     track.addEventListener(
-      'touchstart',
+      'pointerdown',
       (e) => {
-        // a settle that never fired (lost transitionend on iOS) must not block every later gesture
+        if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return
         if (settle.current && performance.now() - settleAt.current > SETTLE_FALLBACK_MS) settle.current()
-        if (settle.current || e.touches.length !== 1 || !canStart(e.target)) return
-        const t = e.changedTouches[0]
-        gesture.current = begin(t.clientX, t.clientY)
+        if (settle.current || !canStart(e.target)) return
+        pointerId = e.pointerId
+        suppressClick.current = false
+        gesture.current = begin(e.clientX, e.clientY)
       },
-      { passive: true, signal },
+      { signal },
     )
     track.addEventListener(
-      'touchmove',
+      'pointermove',
       (e) => {
+        if (e.pointerId !== pointerId) return
         const g = gesture.current
         if (g.phase === 'idle' || g.phase === 'vertical') return
-        // once the browser owns a native scroll the move is not cancelable; fighting it produces the double gesture
-        if (g.phase === 'pending' && !e.cancelable) {
-          gesture.current = { phase: 'vertical' }
-          return
-        }
-        const t = e.changedTouches[0]
-        const next = move(g, t.clientX, t.clientY, e.timeStamp)
+        const next = move(g, e.clientX, e.clientY, e.timeStamp)
         gesture.current = next
         if (next.phase !== 'horizontal') return
-        e.preventDefault()
+        if (g.phase === 'pending' && typeof track.setPointerCapture === 'function') track.setPointerCapture(e.pointerId)
         track.style.transition = 'none'
         track.style.transform = `translateX(calc(-100% + ${damp(next.dx, track.clientWidth)}px))`
       },
-      { passive: false, signal },
+      { signal },
     )
-    track.addEventListener('touchend', finish, { signal })
+    const end = (e: PointerEvent) => {
+      if (e.pointerId !== pointerId) return
+      pointerId = null
+      if (typeof track.hasPointerCapture === 'function' && track.hasPointerCapture(e.pointerId)) track.releasePointerCapture(e.pointerId)
+      finish()
+    }
+    track.addEventListener('pointerup', end, { signal })
     track.addEventListener(
-      'touchcancel',
-      () => {
+      'pointercancel',
+      (e) => {
+        if (e.pointerId !== pointerId) return
+        pointerId = null
         const wasHorizontal = gesture.current.phase === 'horizontal'
         gesture.current = IDLE
         if (wasHorizontal) slideTo(REST, null)
       },
       { signal },
+    )
+    // a horizontal drag must not end as a click on the row underneath
+    track.addEventListener(
+      'click',
+      (e) => {
+        if (suppressClick.current) {
+          suppressClick.current = false
+          e.stopPropagation()
+          e.preventDefault()
+        }
+      },
+      { capture: true, signal },
     )
     track.addEventListener(
       'transitionend',

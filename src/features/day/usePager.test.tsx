@@ -21,21 +21,35 @@ function Harness({ onChange, expose }: { onChange: (d: ISODate) => void; expose?
   return (
     <>
       <h1>{date}</h1>
-      <DayPager date={date} pager={pager} renderDay={(d) => <span>{d}</span>} />
+      <DayPager
+        date={date}
+        pager={pager}
+        renderDay={(d) => (
+          <span>
+            {d}
+            <button type="button">row</button>
+          </span>
+        )}
+      />
     </>
   )
 }
 
-type Point = { x: number; y: number; t?: number; cancelable?: boolean }
+type PointerType = 'pointerdown' | 'pointermove' | 'pointerup' | 'pointercancel'
+type Point = { x: number; y: number; t?: number; pointerId?: number; pointerType?: string }
 
-function touch(el: Element, type: string, { x, y, t = 0, cancelable = true }: Point): Event {
-  const e = new Event(type, { bubbles: true, cancelable })
-  const list = [{ clientX: x, clientY: y, identifier: 1 }]
-  Object.defineProperties(e, {
-    touches: { value: type === 'touchend' || type === 'touchcancel' ? [] : list },
-    changedTouches: { value: list },
-    timeStamp: { value: t },
-  })
+function pointer(el: Element, type: PointerType, { x, y, t, pointerId = 1, pointerType = 'touch' }: Point): Event {
+  const init = { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons: type === 'pointerup' || type === 'pointercancel' ? 0 : 1 }
+  const e =
+    typeof PointerEvent === 'undefined'
+      ? Object.defineProperties(new MouseEvent(type, init), {
+          pointerId: { value: pointerId },
+          pointerType: { value: pointerType },
+          isPrimary: { value: true },
+          button: { value: 0 },
+        })
+      : new PointerEvent(type, { ...init, pointerId, pointerType, isPrimary: true })
+  if (t !== undefined) Object.defineProperty(e, 'timeStamp', { value: t })
   el.dispatchEvent(e)
   return e
 }
@@ -50,14 +64,34 @@ function track(): HTMLElement {
   return el
 }
 
+function drag(el: Element, from: number, to: number, t = 500) {
+  pointer(el, 'pointerdown', { x: from, y: 300 })
+  pointer(el, 'pointermove', { x: from + Math.sign(to - from) * 20, y: 300, t: 10 })
+  pointer(el, 'pointermove', { x: to, y: 300, t })
+  pointer(el, 'pointerup', { x: to, y: 300, t: t + 10 })
+}
+
+beforeAll(() => {
+  // jsdom implements PointerEvent but not pointer capture
+  const proto = HTMLElement.prototype as Partial<HTMLElement>
+  proto.setPointerCapture ??= function () {}
+  proto.releasePointerCapture ??= function () {}
+  proto.hasPointerCapture ??= () => false
+})
+
 describe('usePager', () => {
-  it('follows the finger once locked horizontal and prevents the native scroll', () => {
+  it('follows the finger once locked horizontal and captures the pointer', () => {
     render(<Harness onChange={vi.fn()} />)
     const el = track()
-    touch(el, 'touchstart', { x: 200, y: 300 })
-    const first = touch(el, 'touchmove', { x: 180, y: 302, t: 10 })
-    expect(first.defaultPrevented).toBe(true)
-    touch(el, 'touchmove', { x: 80, y: 305, t: 50 })
+    const capture = vi.spyOn(el, 'setPointerCapture')
+    pointer(el, 'pointerdown', { x: 200, y: 300 })
+    expect(el.style.transform).toBe(REST)
+    pointer(el, 'pointermove', { x: 180, y: 302, t: 10 })
+    expect(capture).toHaveBeenCalledTimes(1)
+    expect(capture).toHaveBeenCalledWith(1)
+    expect(el.style.transform).toBe('translateX(calc(-100% + -20px))')
+    pointer(el, 'pointermove', { x: 80, y: 305, t: 50 })
+    expect(capture).toHaveBeenCalledTimes(1)
     expect(el.style.transform).toBe('translateX(calc(-100% + -120px))')
     expect(el.style.transition).toBe('none')
   })
@@ -66,10 +100,7 @@ describe('usePager', () => {
     const onChange = vi.fn()
     render(<Harness onChange={onChange} />)
     const el = track()
-    touch(el, 'touchstart', { x: 300, y: 300 })
-    touch(el, 'touchmove', { x: 280, y: 300, t: 10 })
-    touch(el, 'touchmove', { x: 150, y: 300, t: 500 })
-    touch(el, 'touchend', { x: 150, y: 300, t: 510 })
+    drag(el, 300, 150)
     expect(el.style.transform).toBe('translateX(-200%)')
     expect(el.style.transition).toContain('var(--dur-normal)')
     expect(onChange).not.toHaveBeenCalled()
@@ -86,38 +117,71 @@ describe('usePager', () => {
     const onChange = vi.fn()
     render(<Harness onChange={onChange} />)
     const el = track()
-    touch(el, 'touchstart', { x: 300, y: 300 })
-    touch(el, 'touchmove', { x: 280, y: 300, t: 10 })
-    touch(el, 'touchmove', { x: 270, y: 300, t: 500 })
-    touch(el, 'touchend', { x: 270, y: 300, t: 510 })
+    drag(el, 300, 270)
     expect(el.style.transform).toBe(REST)
+    expect(el.style.transition).toContain('var(--dur-normal)')
     act(() => transitionEnd(el))
     expect(onChange).not.toHaveBeenCalled()
 
-    touch(el, 'touchstart', { x: 300, y: 300 })
-    const vertical = touch(el, 'touchmove', { x: 302, y: 320, t: 10 })
-    expect(vertical.defaultPrevented).toBe(false)
-    touch(el, 'touchmove', { x: 100, y: 400, t: 50 })
-    touch(el, 'touchend', { x: 100, y: 400, t: 60 })
+    pointer(el, 'pointerdown', { x: 300, y: 300 })
+    pointer(el, 'pointermove', { x: 302, y: 320, t: 10 })
+    pointer(el, 'pointermove', { x: 100, y: 400, t: 50 })
+    expect(el.style.transform).toBe(REST)
+    expect(el.style.transition).toBe('none')
+    pointer(el, 'pointerup', { x: 100, y: 400, t: 60 })
     expect(el.style.transform).toBe(REST)
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it('treats a non-cancelable first move as a native scroll and snaps back on touchcancel', () => {
+  it('ignores moves from another pointer and snaps back when the browser cancels a horizontal drag', () => {
     const onChange = vi.fn()
     render(<Harness onChange={onChange} />)
     const el = track()
-    touch(el, 'touchstart', { x: 300, y: 300 })
-    touch(el, 'touchmove', { x: 100, y: 300, t: 10, cancelable: false })
-    touch(el, 'touchend', { x: 100, y: 300, t: 20 })
+    pointer(el, 'pointerdown', { x: 300, y: 300 })
+    pointer(el, 'pointermove', { x: 100, y: 300, t: 10, pointerId: 2 })
+    expect(el.style.transform).toBe(REST)
+    pointer(el, 'pointerup', { x: 100, y: 300, t: 20, pointerId: 2 })
+    pointer(el, 'pointerup', { x: 300, y: 300, t: 30 })
     expect(onChange).not.toHaveBeenCalled()
 
-    touch(el, 'touchstart', { x: 300, y: 300 })
-    touch(el, 'touchmove', { x: 100, y: 300, t: 10 })
-    touch(el, 'touchcancel', { x: 100, y: 300, t: 20 })
+    pointer(el, 'pointerdown', { x: 300, y: 300 })
+    pointer(el, 'pointermove', { x: 100, y: 300, t: 10 })
+    expect(el.style.transform).toBe('translateX(calc(-100% + -200px))')
+    pointer(el, 'pointercancel', { x: 100, y: 300, t: 20 })
     expect(el.style.transform).toBe(REST)
+    expect(el.style.transition).toContain('var(--dur-normal)')
     act(() => transitionEnd(el))
     expect(onChange).not.toHaveBeenCalled()
+
+    // the pager is usable again right after the cancel
+    drag(el, 300, 150)
+    expect(el.style.transform).toBe('translateX(-200%)')
+  })
+
+  it('swallows the click that follows a horizontal drag, but not a plain tap', () => {
+    render(<Harness onChange={vi.fn()} />)
+    const el = track()
+    const parentClick = vi.fn()
+    el.parentElement!.addEventListener('click', parentClick)
+    const button = screen.getByTestId('day-panel').querySelector('button')!
+
+    drag(el, 300, 150)
+    const suppressed = new MouseEvent('click', { bubbles: true, cancelable: true })
+    button.dispatchEvent(suppressed)
+    expect(suppressed.defaultPrevented).toBe(true)
+    expect(parentClick).not.toHaveBeenCalled()
+
+    const passed = new MouseEvent('click', { bubbles: true, cancelable: true })
+    button.dispatchEvent(passed)
+    expect(passed.defaultPrevented).toBe(false)
+    expect(parentClick).toHaveBeenCalledTimes(1)
+
+    pointer(el, 'pointerdown', { x: 300, y: 300 })
+    pointer(el, 'pointerup', { x: 300, y: 300, t: 10 })
+    const tap = new MouseEvent('click', { bubbles: true, cancelable: true })
+    button.dispatchEvent(tap)
+    expect(tap.defaultPrevented).toBe(false)
+    expect(parentClick).toHaveBeenCalledTimes(2)
   })
 
   it('goNext/goPrev slide programmatically and queue a call made mid-flight', () => {
