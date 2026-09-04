@@ -17,7 +17,7 @@
 - [x] Экран «День» + TaskSheet; проверено в браузере (Playwright, viewport iPhone): создание задач, колонки при пересечении, «без времени»
 - [x] GitHub repo (wizrdr/dayline, ПУБЛИЧНЫЙ — Pages на free-тарифе только так) + Actions деплой; сайт https://wizrdr.github.io/dayline/ открывается (04.09 16:10)
 - [x] Supabase настроен 04.09 17:10: проект ghuhochssdbzyxextlso (Frankfurt), миграции накачены, функции ics/remind задеплоены, secrets и remind_config заданы, cron бьёт в remind каждую минуту (проверено: 200), auth site/redirect URL заданы, ключи в .env и repo variables
-- [ ] ПРОВЕРКА: задача с Mac видна на iPhone без перезагрузки; офлайн-правка догоняет
+- [x] ПРОВЕРКА 04.09 17:35: задача с Mac видна на iPhone (подтвердил Максим); офлайн-правка отдельно не проверялась
 
 ## Шаг 2 — повторы и inbox
 - [x] Серии в шторке (WeekdayPicker), overrides «сделано»/перенос/пропуск одного дня
@@ -35,12 +35,16 @@
 ## Шаг 4 — напоминания
 - [x] `push_subscriptions`, `lib/push.ts`, SW `push` handler, карточка в настройках
 - [x] Edge Function `remind` + pg_cron каждую минуту (deno check OK; инструкция `docs/push-setup.md`)
-- [ ] ПРОВЕРКА: push приходит на iPhone при закрытом приложении
+- [~] ПРОВЕРКА: тестовое уведомление на iPhone пришло (подтвердил Максим); напоминание от cron при закрытом приложении ещё не проверялось
 
 ## Шаг 5 — PWA
 - [x] Manifest, иконки, offline precache (SW регистрируется на живом сайте)
 - [x] Playwright: `e2e/day.spec.ts` + `e2e/smoke.spec.ts` на iPhone/desktop (Chromium), 8 тестов зелёные
-- [ ] ПРОВЕРКА: установка на экран iPhone и в Dock Mac
+- [x] ПРОВЕРКА: установлено на экран iPhone, вход в PWA работает (подтвердил Максим)
+
+## Состояние на 04.09.2026, 17:35
+
+Вход переведён на email+пароль (magic link: 2 письма/час и привязка к браузеру). Регистрация закрыта (`disable_signup`). Подтверждено Максимом: синк Mac → iPhone, PWA на экране, тестовое уведомление. Не проверено: реальное напоминание от cron, ics-события, drag на touch, офлайн-правка. Хвост: отозвать CLI-токен `dayline-cli`.
 
 ## Состояние на 04.09.2026, 17:10
 
