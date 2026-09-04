@@ -21,8 +21,13 @@ describe('pager gesture lock', () => {
 
   it('locks vertical on vertical or ambiguous diagonal moves', () => {
     expect(drag([[0, LOCK_PX, 10]]).phase).toBe('vertical')
-    expect(drag([[12, 10, 10]]).phase).toBe('vertical')
-    expect(drag([[10, 10, 10]]).phase).toBe('vertical')
+    expect(drag([[8, 10, 10]]).phase).toBe('vertical')
+    expect(drag([[10, 12, 10]]).phase).toBe('vertical')
+  })
+
+  it('locks horizontal on the first move at 45° or flatter, so iOS never claims the scroll first', () => {
+    expect(drag([[12, 10, 10]]).phase).toBe('horizontal')
+    expect(drag([[LOCK_PX, 0, 10]]).phase).toBe('horizontal')
   })
 
   it('never re-locks once a direction is chosen', () => {

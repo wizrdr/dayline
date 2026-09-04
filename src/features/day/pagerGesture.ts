@@ -1,5 +1,5 @@
-export const LOCK_PX = 8
-export const LOCK_RATIO = 1.2
+export const LOCK_PX = 3
+export const LOCK_RATIO = 1
 export const COMMIT_FRACTION = 0.25
 export const COMMIT_VELOCITY = 0.4
 const OVERDRAG_DAMP = 0.2
@@ -30,7 +30,7 @@ export function move(g: Gesture, x: number, y: number, t: number): Gesture {
     const dx = x - g.x0
     const dy = y - g.y0
     if (Math.max(Math.abs(dx), Math.abs(dy)) < LOCK_PX) return g
-    if (Math.abs(dx) > Math.abs(dy) * LOCK_RATIO) return { phase: 'horizontal', x0: g.x0, dx, x, t, vx: 0 }
+    if (Math.abs(dx) >= Math.abs(dy) * LOCK_RATIO) return { phase: 'horizontal', x0: g.x0, dx, x, t, vx: 0 }
     return { phase: 'vertical' }
   }
   if (g.phase === 'horizontal') {
