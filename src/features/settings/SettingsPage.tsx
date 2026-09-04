@@ -6,6 +6,7 @@ import { useFeeds } from '@/db/hooks'
 import { softDeleteRow } from '@/db/repo'
 import { signOut, useSession } from '@/features/auth/session'
 import { ChangePassword } from './ChangePassword'
+import { ImportSection } from '@/features/import/ImportSection'
 import type { SyncStatus } from '@/sync/sync'
 import { Button, Card, ColorDot, IconButton, Segmented } from '@/ui'
 import { cn } from '@/ui/cn'
@@ -29,6 +30,7 @@ export function SettingsPage() {
         <SyncSection />
         <FeedsSection />
         <NotificationsSection />
+        <ImportSectionBlock />
         <ThemeSection />
         <footer className="flex items-center justify-between px-1 text-sm text-faint">
           <span>Версия {VERSION}</span>
@@ -141,6 +143,14 @@ function NotificationsSection() {
   return (
     <Section title="Уведомления">
       <NotificationsCard />
+    </Section>
+  )
+}
+
+function ImportSectionBlock() {
+  return (
+    <Section title="Импорт">
+      <ImportSection />
     </Section>
   )
 }
