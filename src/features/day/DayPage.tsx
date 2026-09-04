@@ -1,14 +1,18 @@
 import { useMemo, useState } from 'react'
+import { format } from 'date-fns'
+import { ru } from 'date-fns/locale'
 import { useCalendarEvents, useOverrides, useTasks } from '@/db/hooks'
-import { formatDayTitle, todayISO } from '@/domain/dates'
-import { materializeDay, nowAndNext } from '@/domain/recurrence'
+import { formatDayTitle, fromISODate, snapMin, todayISO } from '@/domain/dates'
+import { materializeDay } from '@/domain/recurrence'
 import type { DayItem, ISODate, Task } from '@/domain/types'
 import { useSession } from '@/features/auth/session'
 import { TaskSheet } from '@/features/task-sheet/TaskSheet'
 import { Button } from '@/ui'
-import { moveItem, toggleDone } from './actions'
+import { extendItem, moveItem, toggleDone } from './actions'
 import { DateStrip } from './DateStrip'
-import { Timeline } from './Timeline'
+import { DayList } from './DayList'
+import { HeroCard } from './HeroCard'
+import { heroItem, heroState } from './heroState'
 import { UntimedList } from './UntimedList'
 import { useNowMinutes } from './useNowMinutes'
 
@@ -23,6 +27,7 @@ export function DayPage() {
   const [sheet, setSheet] = useState<SheetTarget>({ task: null, item: null })
   const [sheetOpen, setSheetOpen] = useState(false)
   const userId = useSession().user?.id ?? null
+  const nowMin = useNowMinutes()
 
   const tasks = useTasks()
   const overrides = useOverrides()
@@ -30,6 +35,8 @@ export function DayPage() {
   const items = useMemo(() => materializeDay(tasks, overrides, date), [tasks, overrides, date])
   const untimed = items.filter((i) => i.start_min === null)
   const isToday = date === today
+  const hero = heroState(items, isToday, nowMin)
+  const heroKey = heroItem(hero)?.key ?? null
 
   const open = (task: Task | null, item: DayItem | null) => {
     setSheet({ task, item })
@@ -38,32 +45,40 @@ export function DayPage() {
   const onToggleDone = (item: DayItem) => {
     if (userId) void toggleDone(item, overrides, userId)
   }
-  const onMove = (item: DayItem, startMin: number) => {
-    if (userId) void moveItem(item, startMin, overrides, userId)
+  const onExtend = (item: DayItem) => {
+    if (userId) void extendItem(item, 15, overrides, userId)
+  }
+  const onStartNow = (item: DayItem) => {
+    if (userId) void moveItem(item, snapMin(nowMin), overrides, userId)
   }
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-bg">
-      <header className="flex items-center justify-between px-4 pb-1 pt-3">
-        <h1 className="text-xl font-semibold text-text">{formatDayTitle(date, today)}</h1>
-        {!isToday && (
-          <Button variant="ghost" size="sm" onClick={() => setDate(today)}>
-            Сегодня
-          </Button>
-        )}
-      </header>
-      <DateStrip date={date} onChange={setDate} />
-      {isToday && <StatusLine items={items} />}
-      <UntimedList items={untimed} onOpen={(item) => open(item.task, item)} onToggleDone={onToggleDone} />
-      <div className="min-h-0 flex-1">
-        <Timeline
-          date={date}
+    <div className="relative h-full overflow-y-auto bg-bg">
+      <div className="mx-auto flex max-w-[480px] flex-col gap-4 px-5 pb-[calc(env(safe-area-inset-bottom)+144px)]">
+        <div>
+          <header className="flex items-end justify-between pb-2 pt-4">
+            <div className="flex flex-col gap-0.5">
+              <h1 className="text-[28px] font-bold leading-none tracking-tight text-text">{formatDayTitle(date, today)}</h1>
+              <span className="text-sm text-muted">{format(fromISODate(date), 'EEEE, d MMMM', { locale: ru })}</span>
+            </div>
+            {!isToday && (
+              <Button variant="ghost" size="sm" onClick={() => setDate(today)}>
+                Сегодня
+              </Button>
+            )}
+          </header>
+          <DateStrip date={date} onChange={setDate} />
+        </div>
+        <HeroCard state={hero} onDone={onToggleDone} onExtend={onExtend} onStartNow={onStartNow} />
+        <DayList
+          label={!isToday ? 'Расписание' : heroKey ? 'Дальше сегодня' : 'Сегодня'}
           items={items}
           events={events}
+          heroKey={heroKey}
           onOpen={(item) => open(item.task, item)}
           onToggleDone={onToggleDone}
-          onMove={onMove}
         />
+        <UntimedList items={untimed} onOpen={(item) => open(item.task, item)} onToggleDone={onToggleDone} />
       </div>
       <button
         type="button"
@@ -85,13 +100,6 @@ export function DayPage() {
       />
     </div>
   )
-}
-
-function StatusLine({ items }: { items: DayItem[] }) {
-  const { current, next } = nowAndNext(items, useNowMinutes())
-  const parts = [current && `Сейчас: ${current.task.title}`, next && `Далее: ${next.task.title}`].filter(Boolean)
-  if (parts.length === 0) return null
-  return <p className="truncate px-4 pb-2 text-sm text-muted">{parts.join(' · ')}</p>
 }
 
 export default DayPage

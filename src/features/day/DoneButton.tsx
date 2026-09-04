@@ -20,17 +20,19 @@ export function DoneButton({ done, color, onToggle, className }: DoneButtonProps
       aria-label="Выполнено"
       aria-pressed={done}
       onClick={onClick}
-      onPointerDown={(e) => e.stopPropagation()}
-      className={cn(
-        'flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-fast',
-        taskBorderClass[color],
-        done ? cn(taskBgClass[color], 'text-accent-fg') : 'bg-transparent text-transparent',
-        className,
-      )}
+      className={cn('flex size-11 shrink-0 items-center justify-center', className)}
     >
-      <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-        <path d="M3 8.5l3 3 7-7" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <span
+        className={cn(
+          'flex size-6 items-center justify-center rounded-full border-2 transition-colors duration-fast',
+          taskBorderClass[color],
+          done ? cn(taskBgClass[color], 'text-accent-fg') : 'bg-transparent text-transparent',
+        )}
+      >
+        <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+          <path d="M3 8.5l3 3 7-7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
     </button>
   )
 }

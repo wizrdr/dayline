@@ -53,3 +53,17 @@ export async function moveItem(
 export async function skipOccurrence(item: DayItem, overrides: TaskOverride[], userId: string): Promise<void> {
   await upsertOverride(item, overrides, { skipped: true }, userId)
 }
+
+export async function extendItem(
+  item: DayItem,
+  minutes: number,
+  overrides: TaskOverride[],
+  userId: string,
+): Promise<void> {
+  const duration_min = item.duration_min + minutes
+  if (item.task.kind === 'single') {
+    await patchRow('tasks', item.task.id, { duration_min })
+    return
+  }
+  await upsertOverride(item, overrides, { duration_min }, userId)
+}

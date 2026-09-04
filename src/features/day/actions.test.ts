@@ -1,7 +1,7 @@
 import { createTask } from '@/db/repo'
 import { db } from '@/db/schema'
 import { materializeDay } from '@/domain/recurrence'
-import { moveItem, skipOccurrence, toggleDone } from './actions'
+import { extendItem, moveItem, skipOccurrence, toggleDone } from './actions'
 
 const DATE = '2026-09-04'
 
@@ -16,6 +16,7 @@ async function seriesItem() {
       title: 'Зарядка',
       note: '',
       color: 2,
+      icon: null,
       date: null,
       start_min: 480,
       duration_min: 30,
@@ -61,6 +62,7 @@ describe('day actions', () => {
         title: 'Хлеб',
         note: '',
         color: 1,
+        icon: null,
         date: DATE,
         start_min: null,
         duration_min: 60,
@@ -90,5 +92,39 @@ describe('day actions', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ start_min: 600, skipped: true })
     expect(materializeDay([item.task], rows, DATE)).toHaveLength(0)
+  })
+
+  it('extend on a single task adds minutes to duration_min', async () => {
+    const task = await createTask(
+      {
+        title: 'Чтение',
+        note: '',
+        color: 1,
+        icon: null,
+        date: DATE,
+        start_min: 600,
+        duration_min: 45,
+        done: false,
+        kind: 'single',
+        weekdays: null,
+        start_date: null,
+        end_date: null,
+        remind_min_before: null,
+      },
+      'u1',
+    )
+    const [item] = materializeDay([task], [], DATE)
+    await extendItem(item, 15, [], 'u1')
+    expect((await db.tasks.get(task.id))?.duration_min).toBe(60)
+    expect(await db.task_overrides.count()).toBe(0)
+  })
+
+  it('extend on a series occurrence writes duration_min into the override', async () => {
+    const item = await seriesItem()
+    await extendItem(item, 15, [], 'u1')
+    const rows = await db.task_overrides.toArray()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ series_id: item.task.id, date: DATE, duration_min: 45 })
+    expect(materializeDay([item.task], rows, DATE)[0].duration_min).toBe(45)
   })
 })
