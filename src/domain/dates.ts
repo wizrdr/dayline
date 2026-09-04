@@ -1,6 +1,6 @@
 import { addDays, format, getISODay, parse, startOfISOWeek } from 'date-fns'
 import { ru } from 'date-fns/locale'
-import type { ISODate, Weekday } from './types'
+import type { ISODate, Weekday } from './types.ts'
 
 const ISO_FORMAT = 'yyyy-MM-dd'
 

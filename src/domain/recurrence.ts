@@ -1,5 +1,5 @@
-import { isoWeekday } from './dates'
-import type { DayItem, ISODate, Task, TaskOverride } from './types'
+import { isoWeekday } from './dates.ts'
+import type { DayItem, ISODate, Task, TaskOverride } from './types.ts'
 
 export function isActiveRow(row: { deleted_at: string | null }): boolean {
   return row.deleted_at === null

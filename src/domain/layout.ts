@@ -1,4 +1,4 @@
-import { formatMin, snapMin } from './dates'
+import { formatMin, snapMin } from './dates.ts'
 
 export const PX_PER_MIN = 1.2
 export const DAY_START_MIN = 0

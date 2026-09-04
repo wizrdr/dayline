@@ -1,0 +1,15 @@
+{
+  "imports": {
+    "date-fns": "npm:date-fns@4",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2",
+    "ical.js": "npm:ical.js@2",
+    "web-push": "npm:web-push@3",
+    "date-fns/locale": "npm:date-fns@4/locale"
+  },
+  "compilerOptions": {
+    "lib": [
+      "deno.window"
+    ],
+    "strict": true
+  }
+}

@@ -1,4 +1,4 @@
-import type { Task, TaskOverride } from './types'
+import type { Task, TaskOverride } from './types.ts'
 
 let seq = 0
 

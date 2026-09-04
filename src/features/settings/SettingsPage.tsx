@@ -6,9 +6,10 @@ import { useFeeds } from '@/db/hooks'
 import { softDeleteRow } from '@/db/repo'
 import { signOut, useSession } from '@/features/auth/session'
 import type { SyncStatus } from '@/sync/sync'
-import { Button, Card, ColorDot, IconButton, Segmented, Toggle } from '@/ui'
+import { Button, Card, ColorDot, IconButton, Segmented } from '@/ui'
 import { cn } from '@/ui/cn'
 import { AddFeedSheet } from './AddFeedSheet'
+import { NotificationsCard } from './NotificationsCard'
 
 const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
   { value: 'system', label: 'Системная' },
@@ -135,8 +136,7 @@ function FeedsSection() {
 function NotificationsSection() {
   return (
     <Section title="Уведомления">
-      <Toggle checked={false} onChange={() => {}} label="Напоминания" disabled />
-      <span className="text-sm text-faint">Появится в следующем обновлении</span>
+      <NotificationsCard />
     </Section>
   )
 }
