@@ -9,7 +9,7 @@ const tabs = [
 
 export function Shell() {
   return (
-    <div className="flex h-dvh flex-col bg-bg text-text">
+    <div className="flex h-dvh flex-col bg-bg pt-[env(safe-area-inset-top)] text-text">
       <main className="min-h-0 flex-1 overflow-hidden">
         <Outlet />
       </main>
