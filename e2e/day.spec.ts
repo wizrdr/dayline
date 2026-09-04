@@ -14,32 +14,25 @@ async function createTask(page: Page, title: string, time?: string, durationLabe
 
 const panel = (page: Page) => page.getByTestId('day-panel')
 
-type PointerType = 'pointerdown' | 'pointermove' | 'pointerup'
+type TouchType = 'touchstart' | 'touchmove' | 'touchend'
 
 // Playwright builds a real PointerEvent for pointer event names, in WebKit too
-async function pointerTrack(page: Page, type: PointerType, x: number, y: number) {
-  await page.getByTestId('day-track').dispatchEvent(type, {
-    pointerId: 1,
-    pointerType: 'touch',
-    isPrimary: true,
-    button: 0,
-    buttons: type === 'pointerup' ? 0 : 1,
-    clientX: x,
-    clientY: y,
-    bubbles: true,
-    cancelable: true,
-  })
+async function pointerTrack(page: Page, type: TouchType, x: number, y: number) {
+  const point = { identifier: 1, clientX: x, clientY: y, pageX: x, pageY: y }
+  const list = type === 'touchend' ? [] : [point]
+  // Playwright builds a native TouchEvent from this init, WebKit included
+  await page.getByTestId('day-track').dispatchEvent(type, { touches: list, targetTouches: list, changedTouches: [point], bubbles: true, cancelable: true })
 }
 
 async function swipeDay(page: Page, dx: number) {
   const step = Math.sign(dx) * 12
-  await pointerTrack(page, 'pointerdown', 200, 400)
+  await pointerTrack(page, 'touchstart', 200, 400)
   await page.waitForTimeout(16)
-  await pointerTrack(page, 'pointermove', 200 + step, 401)
+  await pointerTrack(page, 'touchmove', 200 + step, 401)
   await page.waitForTimeout(16)
-  await pointerTrack(page, 'pointermove', 200 + dx, 402)
+  await pointerTrack(page, 'touchmove', 200 + dx, 402)
   await page.waitForTimeout(16)
-  await pointerTrack(page, 'pointerup', 200 + dx, 402)
+  await pointerTrack(page, 'touchend', 200 + dx, 402)
 }
 
 const DENSE_DAY = JSON.stringify({
@@ -152,14 +145,14 @@ test('swiping the pager slides to the adjacent day and follows the finger', asyn
   const track = page.getByTestId('day-track')
   const width = (await track.boundingBox())!.width
 
-  await pointerTrack(page, 'pointerdown', 300, 400)
-  await pointerTrack(page, 'pointermove', 288, 401)
-  await pointerTrack(page, 'pointermove', 180, 403)
+  await pointerTrack(page, 'touchstart', 300, 400)
+  await pointerTrack(page, 'touchmove', 288, 401)
+  await pointerTrack(page, 'touchmove', 180, 403)
   const mid = await track.evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41)
   expect(Math.round(mid)).toBe(Math.round(-width - 120))
   await page.screenshot({ path: 'test-results/day-swipe-mid.png' })
 
-  await pointerTrack(page, 'pointerup', 180, 403)
+  await pointerTrack(page, 'touchend', 180, 403)
   await expect(page.getByRole('heading', { name: 'Завтра' })).toBeVisible()
   await expect(panel(page).getByText('Расписание').or(panel(page).getByText('День свободен'))).toBeVisible()
   await expect.poll(() => track.evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41)).toBe(-width)
@@ -171,20 +164,20 @@ test('swiping the pager slides to the adjacent day and follows the finger', asyn
   await expect(page.getByRole('heading', { name: 'Вчера' })).toBeVisible()
 
   // a short, slow drag snaps back (a fast flick of the same length would legitimately commit)
-  await pointerTrack(page, 'pointerdown', 200, 400)
-  await pointerTrack(page, 'pointermove', 212, 401)
+  await pointerTrack(page, 'touchstart', 200, 400)
+  await pointerTrack(page, 'touchmove', 212, 401)
   await page.waitForTimeout(150)
-  await pointerTrack(page, 'pointermove', 230, 402)
+  await pointerTrack(page, 'touchmove', 230, 402)
   await page.waitForTimeout(150)
-  await pointerTrack(page, 'pointerup', 230, 402)
+  await pointerTrack(page, 'touchend', 230, 402)
   await page.waitForTimeout(300)
   await expect(page.getByRole('heading', { name: 'Вчера' })).toBeVisible()
 
   // vertical gesture is a scroll, not a swipe, even when it drifts sideways later
-  await pointerTrack(page, 'pointerdown', 200, 400)
-  await pointerTrack(page, 'pointermove', 202, 420)
-  await pointerTrack(page, 'pointermove', 60, 600)
-  await pointerTrack(page, 'pointerup', 60, 600)
+  await pointerTrack(page, 'touchstart', 200, 400)
+  await pointerTrack(page, 'touchmove', 202, 420)
+  await pointerTrack(page, 'touchmove', 60, 600)
+  await pointerTrack(page, 'touchend', 60, 600)
   await page.waitForTimeout(300)
   await expect(page.getByRole('heading', { name: 'Вчера' })).toBeVisible()
   expect(await track.evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41)).toBe(-width)

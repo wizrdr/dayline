@@ -36,7 +36,7 @@ export function move(g: Gesture, x: number, y: number, t: number): Gesture {
     return { phase: 'vertical' }
   }
   if (g.phase === 'horizontal') {
-    // velocity over the last ~100ms: iOS coalesces pointer moves, so two adjacent samples under-read a flick
+    // velocity over the last ~100ms: iOS coalesces touch moves, so two adjacent samples under-read a flick
     const trail = [...g.trail, { x, t }].filter((p) => t - p.t <= VELOCITY_WINDOW_MS)
     const first = trail[0] ?? { x, t }
     const dt = t - first.t

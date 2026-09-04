@@ -35,20 +35,19 @@ function Harness({ onChange, expose }: { onChange: (d: ISODate) => void; expose?
   )
 }
 
-type PointerType = 'pointerdown' | 'pointermove' | 'pointerup' | 'pointercancel'
-type Point = { x: number; y: number; t?: number; pointerId?: number; pointerType?: string }
+type TouchType = 'touchstart' | 'touchmove' | 'touchend' | 'touchcancel'
+type Point = { x: number; y: number; t?: number; id?: number; cancelable?: boolean }
 
-function pointer(el: Element, type: PointerType, { x, y, t, pointerId = 1, pointerType = 'touch' }: Point): Event {
-  const init = { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons: type === 'pointerup' || type === 'pointercancel' ? 0 : 1 }
-  const e =
-    typeof PointerEvent === 'undefined'
-      ? Object.defineProperties(new MouseEvent(type, init), {
-          pointerId: { value: pointerId },
-          pointerType: { value: pointerType },
-          isPrimary: { value: true },
-          button: { value: 0 },
-        })
-      : new PointerEvent(type, { ...init, pointerId, pointerType, isPrimary: true })
+// jsdom has no TouchEvent constructor, so a generic Event carries the touch lists
+function touch(el: Element, type: TouchType, { x, y, t, id = 1, cancelable = true }: Point): Event {
+  const e = new Event(type, { bubbles: true, cancelable })
+  const point = { identifier: id, clientX: x, clientY: y, target: el }
+  const active = type === 'touchend' || type === 'touchcancel' ? [] : [point]
+  Object.defineProperties(e, {
+    touches: { value: active },
+    targetTouches: { value: active },
+    changedTouches: { value: [point] },
+  })
   if (t !== undefined) Object.defineProperty(e, 'timeStamp', { value: t })
   el.dispatchEvent(e)
   return e
@@ -65,35 +64,42 @@ function track(): HTMLElement {
 }
 
 function drag(el: Element, from: number, to: number, t = 500) {
-  pointer(el, 'pointerdown', { x: from, y: 300 })
-  pointer(el, 'pointermove', { x: from + Math.sign(to - from) * 20, y: 300, t: 10 })
-  pointer(el, 'pointermove', { x: to, y: 300, t })
-  pointer(el, 'pointerup', { x: to, y: 300, t: t + 10 })
+  touch(el, 'touchstart', { x: from, y: 300 })
+  touch(el, 'touchmove', { x: from + Math.sign(to - from) * 20, y: 300, t: 10 })
+  touch(el, 'touchmove', { x: to, y: 300, t })
+  touch(el, 'touchend', { x: to, y: 300, t: t + 10 })
 }
 
-beforeAll(() => {
-  // jsdom implements PointerEvent but not pointer capture
-  const proto = HTMLElement.prototype as Partial<HTMLElement>
-  proto.setPointerCapture ??= function () {}
-  proto.releasePointerCapture ??= function () {}
-  proto.hasPointerCapture ??= () => false
-})
-
 describe('usePager', () => {
-  it('follows the finger once locked horizontal and captures the pointer', () => {
+  it('follows the finger once locked horizontal and cancels the native pan', () => {
     render(<Harness onChange={vi.fn()} />)
     const el = track()
-    const capture = vi.spyOn(el, 'setPointerCapture')
-    pointer(el, 'pointerdown', { x: 200, y: 300 })
+    touch(el, 'touchstart', { x: 200, y: 300 })
     expect(el.style.transform).toBe(REST)
-    pointer(el, 'pointermove', { x: 180, y: 302, t: 10 })
-    expect(capture).toHaveBeenCalledTimes(1)
-    expect(capture).toHaveBeenCalledWith(1)
+    const first = touch(el, 'touchmove', { x: 180, y: 302, t: 10 })
+    expect(first.defaultPrevented).toBe(true)
     expect(el.style.transform).toBe('translateX(calc(-100% + -20px))')
-    pointer(el, 'pointermove', { x: 80, y: 305, t: 50 })
-    expect(capture).toHaveBeenCalledTimes(1)
+    const second = touch(el, 'touchmove', { x: 80, y: 305, t: 50 })
+    expect(second.defaultPrevented).toBe(true)
     expect(el.style.transform).toBe('translateX(calc(-100% + -120px))')
     expect(el.style.transition).toBe('none')
+  })
+
+  it('keeps following a horizontal move the browser marks non-cancelable', () => {
+    // iOS marks every touchmove inside an overflow scroller non-cancelable; the swipe must still work there
+    const onChange = vi.fn()
+    render(<Harness onChange={onChange} />)
+    const el = track()
+    touch(el, 'touchstart', { x: 200, y: 300 })
+    const move = touch(el, 'touchmove', { x: 180, y: 302, t: 10, cancelable: false })
+    expect(move.defaultPrevented).toBe(false)
+    expect(el.style.transform).toBe('translateX(calc(-100% + -20px))')
+    touch(el, 'touchmove', { x: 80, y: 305, t: 50, cancelable: false })
+    expect(el.style.transform).toBe('translateX(calc(-100% + -120px))')
+    touch(el, 'touchend', { x: 80, y: 305, t: 60 })
+    expect(el.style.transform).toBe('translateX(-200%)')
+    act(() => transitionEnd(el))
+    expect(onChange).toHaveBeenCalledWith('2026-09-05')
   })
 
   it('commits to the next day after a long drag and resets the track without a transition', () => {
@@ -123,31 +129,32 @@ describe('usePager', () => {
     act(() => transitionEnd(el))
     expect(onChange).not.toHaveBeenCalled()
 
-    pointer(el, 'pointerdown', { x: 300, y: 300 })
-    pointer(el, 'pointermove', { x: 302, y: 320, t: 10 })
-    pointer(el, 'pointermove', { x: 100, y: 400, t: 50 })
+    touch(el, 'touchstart', { x: 300, y: 300 })
+    const vertical = touch(el, 'touchmove', { x: 302, y: 320, t: 10 })
+    expect(vertical.defaultPrevented).toBe(false)
+    touch(el, 'touchmove', { x: 100, y: 400, t: 50 })
     expect(el.style.transform).toBe(REST)
     expect(el.style.transition).toBe('none')
-    pointer(el, 'pointerup', { x: 100, y: 400, t: 60 })
+    touch(el, 'touchend', { x: 100, y: 400, t: 60 })
     expect(el.style.transform).toBe(REST)
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it('ignores moves from another pointer and snaps back when the browser cancels a horizontal drag', () => {
+  it('ignores a second touch and snaps back when the browser cancels a horizontal drag', () => {
     const onChange = vi.fn()
     render(<Harness onChange={onChange} />)
     const el = track()
-    pointer(el, 'pointerdown', { x: 300, y: 300 })
-    pointer(el, 'pointermove', { x: 100, y: 300, t: 10, pointerId: 2 })
+    touch(el, 'touchstart', { x: 300, y: 300 })
+    touch(el, 'touchmove', { x: 100, y: 300, t: 10, id: 2 })
     expect(el.style.transform).toBe(REST)
-    pointer(el, 'pointerup', { x: 100, y: 300, t: 20, pointerId: 2 })
-    pointer(el, 'pointerup', { x: 300, y: 300, t: 30 })
+    touch(el, 'touchend', { x: 100, y: 300, t: 20, id: 2 })
+    touch(el, 'touchend', { x: 300, y: 300, t: 30 })
     expect(onChange).not.toHaveBeenCalled()
 
-    pointer(el, 'pointerdown', { x: 300, y: 300 })
-    pointer(el, 'pointermove', { x: 100, y: 300, t: 10 })
+    touch(el, 'touchstart', { x: 300, y: 300 })
+    touch(el, 'touchmove', { x: 100, y: 300, t: 10 })
     expect(el.style.transform).toBe('translateX(calc(-100% + -200px))')
-    pointer(el, 'pointercancel', { x: 100, y: 300, t: 20 })
+    touch(el, 'touchcancel', { x: 100, y: 300, t: 20 })
     expect(el.style.transform).toBe(REST)
     expect(el.style.transition).toContain('var(--dur-normal)')
     act(() => transitionEnd(el))
@@ -176,8 +183,8 @@ describe('usePager', () => {
     expect(passed.defaultPrevented).toBe(false)
     expect(parentClick).toHaveBeenCalledTimes(1)
 
-    pointer(el, 'pointerdown', { x: 300, y: 300 })
-    pointer(el, 'pointerup', { x: 300, y: 300, t: 10 })
+    touch(el, 'touchstart', { x: 300, y: 300 })
+    touch(el, 'touchend', { x: 300, y: 300, t: 10 })
     const tap = new MouseEvent('click', { bubbles: true, cancelable: true })
     button.dispatchEvent(tap)
     expect(tap.defaultPrevented).toBe(false)
