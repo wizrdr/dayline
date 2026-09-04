@@ -11,7 +11,7 @@ test('design showcase renders in both themes', async ({ page }) => {
 test('entry screen renders: day view (dev user), login, or setup notice', async ({ page }) => {
   await page.goto('/')
   await expect(
-    page.getByRole('heading', { name: /Сегодня/ }).or(page.getByText(/ссылку для входа|VITE_SUPABASE_URL/i)),
+    page.getByRole('heading', { name: /Сегодня/ }).or(page.getByRole('button', { name: /^Войти$/ }).or(page.getByText(/VITE_SUPABASE_URL/))),
   ).toBeVisible()
   await page.screenshot({ path: 'test-results/entry.png' })
 })

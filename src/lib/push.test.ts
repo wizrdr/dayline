@@ -120,6 +120,7 @@ describe('enablePush', () => {
     await expect(enablePush('u1')).rejects.toThrow('Браузер не поддерживает уведомления')
   })
   it('throws when the VAPID key is missing', async () => {
+    vi.stubEnv('VITE_VAPID_PUBLIC_KEY', '')
     installPushApis(null, 'default')
     await expect(enablePush('u1')).rejects.toThrow('VITE_VAPID_PUBLIC_KEY')
   })
