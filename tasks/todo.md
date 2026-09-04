@@ -27,22 +27,32 @@
 - [ ] ПРОВЕРКА: vitest recurrence; на таймлайне правильные дни
 
 ## Шаг 3 — календарь
-- [ ] Edge Function `ics` (ical.js, окно ±30 дней)
+- [x] Edge Function `ics` (ical.js, окно −7…+30 дней; 8 Deno-тестов, deno check OK)
 - [x] Настройки: ics-ленты (UI готов, загрузка событий — нет)
-- [ ] Ghost-блоки событий на таймлайне, кэш в Dexie, refresh 15 мин
+- [x] Ghost-блоки событий на таймлайне, кэш в Dexie, refresh 15 мин (`src/features/calendar`)
 - [ ] ПРОВЕРКА: рабочие миты Google Calendar совпадают на сегодня
 
 ## Шаг 4 — напоминания
-- [ ] `push_subscriptions`, `lib/push.ts`, SW `push` handler
-- [ ] Edge Function `remind` + pg_cron каждую минуту, VAPID secrets
+- [x] `push_subscriptions`, `lib/push.ts`, SW `push` handler, карточка в настройках
+- [x] Edge Function `remind` + pg_cron каждую минуту (deno check OK; инструкция `docs/push-setup.md`)
 - [ ] ПРОВЕРКА: push приходит на iPhone при закрытом приложении
 
 ## Шаг 5 — PWA
 - [x] Manifest, иконки, offline precache (SW регистрируется на живом сайте)
-- [ ] Playwright: viewport iPhone, задачи не перекрываются
+- [x] Playwright: `e2e/day.spec.ts` + `e2e/smoke.spec.ts` на iPhone/desktop (Chromium), 8 тестов зелёные
 - [ ] ПРОВЕРКА: установка на экран iPhone и в Dock Mac
 
-## Состояние на паузе (04.09.2026, 14:10)
+## Состояние на 04.09.2026, 16:40
+
+Код всех пяти шагов написан и закоммичен (`main`, 5 коммитов). Локально: tsc чистый, 146 vitest + 8 Deno + 8 Playwright зелёные, `npm run build` проходит. Сайт https://wizrdr.github.io/dayline/ живой (репозиторий публичный).
+
+Осталось, всё требует Максима:
+1. Проект Supabase по `docs/supabase-setup.md`: ключи в `.env` и `gh variable set VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY`, `npx supabase link`, `db push`, `functions deploy ics`, `functions deploy remind --no-verify-jwt`.
+2. Push по `docs/push-setup.md`: VAPID-ключи, secrets, строки `private.remind_config`.
+3. Решающие проверки: синк Mac ↔ iPhone, ics-события рабочего календаря на сегодня, push на закрытый iPhone, drag на touch.
+4. Мелочи: показывать ошибки лент из `useCalendarStatus()` в настройках; завести ритм дня как серии.
+
+## Прошлое состояние (пауза 14:10)
 
 Сделано и проверено локально (`npx tsc` без ошибок, `npx vitest run` → 18 файлов, 116 тестов зелёные):
 - Каркас: Vite + React 19 + TS strict + Tailwind v4, алиас `@/`, vite-plugin-pwa (injectManifest, `src/sw.ts` с push-обработчиком), Playwright-конфиг, `e2e/smoke.spec.ts`, иконки `public/icon-*.png`.
