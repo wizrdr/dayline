@@ -82,21 +82,24 @@ test('create a timed task, see it in the day list, mark it done', async ({ page 
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /Сегодня/ })).toBeVisible()
 
-  // the earlier task takes the hero slot, so «Anki» always lands in the list
-  const hour = new Date().getHours()
-  await createTask(page, 'Раньше', hhmm(((hour + 2) % 24) * 60))
-  const start = ((hour + 3) % 24) * 60
-  await createTask(page, 'Anki', hhmm(start))
+  // tomorrow has no «Сейчас» hero, so fixed times are deterministic regardless of the wall clock
+  await swipeDay(page, -160)
+  await expect(page.getByRole('heading', { name: 'Завтра' })).toBeVisible()
+  await createTask(page, 'Раньше', '09:00')
+  await createTask(page, 'Anki', '10:00')
 
   const list = panel(page).getByTestId('day-list')
   const title = list.getByText('Anki')
   await expect(title).toBeVisible()
-  await expect(list.getByText(`${hhmm(start)}–${hhmm(start + 60)}`)).toBeVisible()
+  await expect(list.getByText('10:00–11:00')).toBeVisible()
 
-  await list.getByRole('button', { name: 'Выполнено' }).click()
+  await list.getByRole('button', { name: 'Выполнено' }).nth(1).click()
   await expect(title).toHaveClass(/line-through/)
 
   await page.reload()
+  await expect(page.getByRole('heading', { name: /Сегодня/ })).toBeVisible()
+  await swipeDay(page, -160)
+  await expect(page.getByRole('heading', { name: 'Завтра' })).toBeVisible()
   await expect(panel(page).getByTestId('day-list').getByText('Anki')).toHaveClass(/line-through/)
 })
 
