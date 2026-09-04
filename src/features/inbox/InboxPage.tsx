@@ -16,7 +16,7 @@ export function InboxPage() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+144px)]">
+      <div className="mx-auto flex max-w-[480px] flex-col gap-4 px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+144px)]">
         <header className="flex items-baseline gap-2">
           <h1 className="text-2xl font-semibold text-text">Инбокс</h1>
           <span className="text-muted">{items.length}</span>
@@ -37,7 +37,7 @@ export function InboxPage() {
         type="button"
         aria-label="Новая задача"
         onClick={() => setSheet({ open: true, task: null })}
-        className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+72px)] flex size-14 items-center justify-center rounded-full bg-accent text-3xl leading-none text-accent-fg shadow-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:brightness-95"
+        className="fixed right-[max(1rem,calc(50%-224px))] bottom-[calc(env(safe-area-inset-bottom)+72px)] flex size-14 items-center justify-center rounded-full bg-accent text-3xl leading-none text-accent-fg shadow-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:brightness-95"
       >
         +
       </button>

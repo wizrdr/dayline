@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { createFeed } from '@/db/repo'
 import type { TaskColor } from '@/domain/types'
 import { Button, ColorPicker, Field, Input, Sheet } from '@/ui'
@@ -16,6 +16,7 @@ export function AddFeedSheet({ open, onClose, userId }: Props) {
   const [color, setColor] = useState<TaskColor>(6)
   const [urlInvalid, setUrlInvalid] = useState(false)
   const [saving, setSaving] = useState(false)
+  const formId = useId()
 
   const reset = () => {
     setName('')
@@ -24,8 +25,8 @@ export function AddFeedSheet({ open, onClose, userId }: Props) {
     setUrlInvalid(false)
   }
 
-  const submit = async (e?: FormEvent) => {
-    e?.preventDefault()
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
     const normalized = normalizeFeedUrl(url)
     if (!normalized || !userId) {
       setUrlInvalid(true)
@@ -47,12 +48,12 @@ export function AddFeedSheet({ open, onClose, userId }: Props) {
       onClose={onClose}
       title="Новый календарь"
       footer={
-        <Button full loading={saving} onClick={() => void submit()}>
+        <Button full type="submit" form={formId} loading={saving}>
           Добавить
         </Button>
       }
     >
-      <form className="flex flex-col gap-4" onSubmit={(e) => void submit(e)}>
+      <form id={formId} noValidate className="flex flex-col gap-4" onSubmit={(e) => void submit(e)}>
         <Field label="Название">
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Работа" />
         </Field>

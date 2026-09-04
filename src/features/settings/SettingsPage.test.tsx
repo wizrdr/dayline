@@ -10,6 +10,8 @@ vi.mock('@/features/auth/session', () => ({
   signOut: vi.fn(),
 }))
 
+vi.mock('@/lib/supabase', () => ({ supabase: null, supabaseConfigured: false }))
+
 vi.mock('@/app/SyncProvider', () => ({
   useSyncStatus: () => ({ state: 'idle', lastSyncAt: null }),
 }))
@@ -43,7 +45,8 @@ describe('SettingsPage', () => {
   it('shows email, sync status and version', () => {
     renderPage()
     expect(screen.getByText('me@example.com')).toBeInTheDocument()
-    expect(screen.getByText('Ожидание…')).toBeInTheDocument()
+    expect(screen.getByText(/Supabase не настроен/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Выйти' })).toBeNull()
     expect(screen.getByText(/Версия/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Дизайн-система' })).toHaveAttribute('href', '/design')
   })
@@ -69,6 +72,20 @@ describe('SettingsPage', () => {
       })
     })
     expect(await screen.findByText('Работа')).toBeInTheDocument()
+  })
+
+  it('Enter in the sheet submits the form through our validation', async () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Добавить календарь' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Новый календарь' })
+    const form = dialog.querySelector('form')!
+    expect(form).toHaveAttribute('novalidate')
+    const submit = screen.getByRole('button', { name: 'Добавить' })
+    expect(submit).toHaveAttribute('type', 'submit')
+    expect(submit).toHaveAttribute('form', form.id)
+    fireEvent.change(dialog.querySelectorAll('input')[1]!, { target: { value: 'webcal://calendar.example.com/x.ics' } })
+    fireEvent.submit(form)
+    await waitFor(async () => expect(await db.ics_feeds.count()).toBe(1))
   })
 
   it('rejects a non-http url without writing', async () => {

@@ -5,6 +5,7 @@ import { isThemeMode, useTheme, type ThemeMode } from '@/app/theme'
 import { useFeeds } from '@/db/hooks'
 import { softDeleteRow } from '@/db/repo'
 import { signOut, useSession } from '@/features/auth/session'
+import { supabaseConfigured } from '@/lib/supabase'
 import { ChangePassword } from './ChangePassword'
 import { ImportSection } from '@/features/import/ImportSection'
 import type { SyncStatus } from '@/sync/sync'
@@ -24,7 +25,7 @@ const VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? 'dev
 export function SettingsPage() {
   return (
     <div className="h-full overflow-y-auto">
-      <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+24px)]">
+      <div className="mx-auto flex max-w-[480px] flex-col gap-4 px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+24px)]">
         <h1 className="text-2xl font-semibold text-text">Настройки</h1>
         <AccountSection />
         <SyncSection />
@@ -59,11 +60,13 @@ function AccountSection() {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
           <span className="truncate text-text">{user?.email ?? '—'}</span>
-          <Button variant="ghost" size="sm" onClick={() => void signOut()} className="shrink-0 text-danger">
-            Выйти
-          </Button>
+          {supabaseConfigured && (
+            <Button variant="ghost" size="sm" onClick={() => void signOut()} className="shrink-0 text-danger">
+              Выйти
+            </Button>
+          )}
         </div>
-        <ChangePassword />
+        {supabaseConfigured && <ChangePassword />}
       </div>
     </Section>
   )
@@ -91,7 +94,10 @@ function formatTime(iso: string): string {
 }
 
 function SyncSection() {
-  const { text, danger } = syncText(useSyncStatus())
+  const status = useSyncStatus()
+  const { text, danger } = supabaseConfigured
+    ? syncText(status)
+    : { text: 'Выключена: Supabase не настроен, данные только на этом устройстве', danger: false }
   return (
     <Section title="Синхронизация">
       <span className={danger ? 'text-danger' : 'text-text'}>{text}</span>

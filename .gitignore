@@ -29,3 +29,4 @@ dev-dist
 playwright-report
 test-results
 design/*.html
+.playwright-cli/

@@ -11,15 +11,20 @@ export interface DurationFieldProps {
 }
 
 const DEFAULT_PRESETS = [15, 30, 45, 60, 90, 120]
+const MIN_MIN = 5
+const MAX_MIN = 1440
+const STEP_MIN = 5
 
 export function DurationField({ value, onChange, presets = DEFAULT_PRESETS, className }: DurationFieldProps) {
   const [draft, setDraft] = useState(String(value))
   useEffect(() => setDraft(String(value)), [value])
 
   const commit = () => {
-    const n = Math.round(Number(draft))
-    if (Number.isFinite(n) && n > 0) onChange(n)
-    else setDraft(String(value))
+    const n = Number(draft)
+    if (!Number.isFinite(n) || n <= 0) return setDraft(String(value))
+    const clamped = Math.min(MAX_MIN, Math.max(MIN_MIN, Math.round(n / STEP_MIN) * STEP_MIN))
+    onChange(clamped)
+    setDraft(String(clamped))
   }
 
   return (
@@ -50,8 +55,9 @@ export function DurationField({ value, onChange, presets = DEFAULT_PRESETS, clas
         <Input
           type="number"
           inputMode="numeric"
-          min={1}
-          max={1440}
+          min={MIN_MIN}
+          max={MAX_MIN}
+          step={STEP_MIN}
           aria-label="Длительность в минутах"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

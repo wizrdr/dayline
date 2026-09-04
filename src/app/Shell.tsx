@@ -22,6 +22,7 @@ export function Shell() {
             className={({ isActive }) =>
               cn(
                 'flex min-h-12 flex-1 items-center justify-center text-sm font-medium',
+                'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
                 isActive ? 'text-accent' : 'text-muted',
               )
             }

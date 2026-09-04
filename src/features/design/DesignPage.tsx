@@ -1,4 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { isThemeMode, useTheme } from '@/app/theme'
 import type { IconName, TaskColor, Weekday } from '@/domain/types'
 import {
   Button,
@@ -25,24 +27,11 @@ import {
   taskTextClass,
 } from '@/ui'
 
-type ThemeMode = 'system' | 'light' | 'dark'
-
 const THEME_OPTIONS = [
   { value: 'system', label: 'Система' },
   { value: 'light', label: 'Светлая' },
   { value: 'dark', label: 'Тёмная' },
 ]
-
-function applyTheme(mode: ThemeMode) {
-  const root = document.documentElement
-  if (mode === 'system') root.removeAttribute('data-theme')
-  else root.dataset.theme = mode
-}
-
-function readTheme(): ThemeMode {
-  const t = document.documentElement.dataset.theme
-  return t === 'light' || t === 'dark' ? t : 'system'
-}
 
 const COLOR_TOKENS = [
   ['bg', 'bg-bg'],
@@ -124,7 +113,8 @@ function PlusIcon() {
 }
 
 export default function DesignPage() {
-  const [theme, setTheme] = useState<ThemeMode>(readTheme)
+  const theme = useTheme((s) => s.mode)
+  const setTheme = useTheme((s) => s.setMode)
   const [seg, setSeg] = useState('day')
   const [toggle, setToggle] = useState(true)
   const [color, setColor] = useState<TaskColor>(6)
@@ -134,13 +124,14 @@ export default function DesignPage() {
   const [sheet, setSheet] = useState(false)
   const [icon, setIcon] = useState<IconName>('code')
 
-  useEffect(() => applyTheme(theme), [theme])
-
   return (
     <div className="mx-auto w-full max-w-2xl px-4 pb-24 pt-[max(1rem,env(safe-area-inset-top))] flex flex-col gap-10">
       <header className="flex flex-col gap-4">
+        <Link to="/settings" className="self-start text-sm text-accent underline-offset-2 hover:underline">
+          ← Настройки
+        </Link>
         <h1 className="text-2xl font-semibold text-text">Дизайн-система</h1>
-        <Segmented options={THEME_OPTIONS} value={theme} onChange={(v) => setTheme(v as ThemeMode)} />
+        <Segmented options={THEME_OPTIONS} value={theme} onChange={(v) => isThemeMode(v) && setTheme(v)} />
       </header>
 
       <Section title="Цвета">
