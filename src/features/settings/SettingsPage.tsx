@@ -5,6 +5,7 @@ import { isThemeMode, useTheme, type ThemeMode } from '@/app/theme'
 import { useFeeds } from '@/db/hooks'
 import { softDeleteRow } from '@/db/repo'
 import { signOut, useSession } from '@/features/auth/session'
+import { ChangePassword } from './ChangePassword'
 import type { SyncStatus } from '@/sync/sync'
 import { Button, Card, ColorDot, IconButton, Segmented } from '@/ui'
 import { cn } from '@/ui/cn'
@@ -53,11 +54,14 @@ function AccountSection() {
   const { user } = useSession()
   return (
     <Section title="Аккаунт">
-      <div className="flex items-center justify-between gap-3">
-        <span className="truncate text-text">{user?.email ?? '—'}</span>
-        <Button variant="ghost" size="sm" onClick={() => void signOut()} className="shrink-0 text-danger">
-          Выйти
-        </Button>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="truncate text-text">{user?.email ?? '—'}</span>
+          <Button variant="ghost" size="sm" onClick={() => void signOut()} className="shrink-0 text-danger">
+            Выйти
+          </Button>
+        </div>
+        <ChangePassword />
       </div>
     </Section>
   )
