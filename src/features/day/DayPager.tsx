@@ -39,8 +39,8 @@ function Panel({ current, children }: { current: boolean; children: ReactNode })
     <div
       ref={ref}
       data-testid={current ? 'day-panel' : undefined}
-      inert={!current}
-      className={cn('h-full w-full shrink-0', current ? 'overflow-y-auto' : 'overflow-hidden')}
+      aria-hidden={!current}
+      className={cn('h-full w-full shrink-0', current ? 'overflow-y-auto' : 'pointer-events-none overflow-hidden')}
     >
       <div className="mx-auto flex max-w-[480px] flex-col gap-4 px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+144px)]">{children}</div>
     </div>

@@ -16,16 +16,11 @@ const panel = (page: Page) => page.getByTestId('day-panel')
 
 type TouchType = 'touchstart' | 'touchmove' | 'touchend'
 
-// chromium's headless touch emulation has no drag primitive, so the gesture is dispatched as raw TouchEvents on the track
+// Playwright builds TouchEvents natively, so this also works in WebKit where `new Touch` is an illegal constructor
 async function touchTrack(page: Page, type: TouchType, x: number, y: number) {
-  await page.getByTestId('day-track').evaluate(
-    (el, { type, x, y }) => {
-      const t = new Touch({ identifier: 1, target: el, clientX: x, clientY: y, pageX: x, pageY: y })
-      const list = type === 'touchend' ? [] : [t]
-      el.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: list, targetTouches: list, changedTouches: [t] }))
-    },
-    { type, x, y },
-  )
+  const point = { identifier: 1, clientX: x, clientY: y, pageX: x, pageY: y }
+  const list = type === 'touchend' ? [] : [point]
+  await page.getByTestId('day-track').dispatchEvent(type, { touches: list, targetTouches: list, changedTouches: [point], bubbles: true, cancelable: true })
 }
 
 async function swipeDay(page: Page, dx: number) {

@@ -30,6 +30,7 @@ export function usePager({ date, onChange }: PagerOptions): Pager {
   const latest = useRef({ date, onChange })
   const gesture = useRef<Gesture>(IDLE)
   const settle = useRef<(() => void) | null>(null)
+  const settleAt = useRef(0)
   useEffect(() => {
     latest.current = { date, onChange }
   })
@@ -49,6 +50,7 @@ export function usePager({ date, onChange }: PagerOptions): Pager {
       if (settle.current) return
       // transitionend never fires when the value does not change and can be lost while the tab is hidden
       const timer = window.setTimeout(() => settle.current?.(), SETTLE_FALLBACK_MS)
+      settleAt.current = performance.now()
       settle.current = () => {
         window.clearTimeout(timer)
         settle.current = null
@@ -76,6 +78,8 @@ export function usePager({ date, onChange }: PagerOptions): Pager {
     track.addEventListener(
       'touchstart',
       (e) => {
+        // a settle that never fired (lost transitionend on iOS) must not block every later gesture
+        if (settle.current && performance.now() - settleAt.current > SETTLE_FALLBACK_MS) settle.current()
         if (settle.current || e.touches.length !== 1 || !canStart(e.target)) return
         const t = e.changedTouches[0]
         gesture.current = begin(t.clientX, t.clientY)

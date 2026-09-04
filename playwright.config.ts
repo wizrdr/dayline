@@ -8,5 +8,6 @@ export default defineConfig({
   projects: [
     { name: 'iphone', use: { ...devices['iPhone 14'], browserName: 'chromium' } },
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
+    { name: 'webkit', use: { ...devices['iPhone 14'] }, testMatch: /swipe-repeat|day\.spec/ },
   ],
 })

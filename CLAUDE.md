@@ -22,3 +22,8 @@ npm run build
 npx supabase db push          # миграции
 npx supabase functions deploy # edge functions
 ```
+
+## Расписание как код
+Недельные серии владельца хранятся в `~/Documents/Obsidian Vault/personal/career-plan/dayline-schedule.json` (формат импорта + `key`).
+Запрос «обнови расписание» = правка этого файла по `NOW.md` из vault, затем `node scripts/push-schedule.mjs --dry-run` и без флага.
+Скрипт сопоставляет серии по `tasks.source_key`; ручные серии без ключа не трогает. Правила: `docs/schedule-as-code.md`.
