@@ -120,7 +120,7 @@ describe('usePager', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it('goNext/goPrev slide programmatically and ignore calls mid-flight', () => {
+  it('goNext/goPrev slide programmatically and queue a call made mid-flight', () => {
     const onChange = vi.fn()
     let api: Pager | null = null
     render(<Harness onChange={onChange} expose={(p) => (api = p)} />)
@@ -132,6 +132,10 @@ describe('usePager', () => {
     act(() => transitionEnd(el))
     expect(onChange).toHaveBeenCalledTimes(1)
     expect(onChange).toHaveBeenCalledWith('2026-09-03')
+    // the tap made during the slide runs right after it settles instead of being dropped
+    expect(el.style.transform).toBe('translateX(-200%)')
+    act(() => transitionEnd(el))
+    expect(onChange).toHaveBeenCalledTimes(2)
     expect(el.style.transform).toBe(REST)
   })
 

@@ -34,3 +34,15 @@ test('three swipes in a row keep switching days, then back', async ({ page }) =>
   await swipe(page, 160)
   await expect(page.locator('h1').first()).toHaveText(third)
 })
+
+test('bottom arrows switch days back and forth', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: /Сегодня/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Следующий день' }).click()
+  await expect(page.getByRole('heading', { name: 'Завтра' })).toBeVisible()
+  await page.getByRole('button', { name: 'Следующий день' }).click()
+  await expect(page.getByRole('heading', { name: /Сегодня|Завтра/ })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Предыдущий день' }).click()
+  await page.getByRole('button', { name: 'Предыдущий день' }).click()
+  await expect(page.getByRole('heading', { name: /Сегодня/ })).toBeVisible()
+})

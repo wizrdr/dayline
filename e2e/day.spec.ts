@@ -204,9 +204,10 @@ test('the date strip switches adjacent days with a slide and other days directly
 
 test('the note shows up as a second line in the row', async ({ page }) => {
   await page.goto('/')
-  const hour = new Date().getHours()
-  await createTask(page, 'Раньше', hhmm(((hour + 2) % 24) * 60))
-  await createTask(page, 'Работа', hhmm(((hour + 3) % 24) * 60), undefined, 'Стендап в 10:00')
+  await page.getByRole('button', { name: 'Следующий день' }).click()
+  await expect(page.getByRole('heading', { name: 'Завтра' })).toBeVisible()
+  await createTask(page, 'Раньше', '09:00')
+  await createTask(page, 'Работа', '10:00', undefined, 'Стендап в 10:00')
   const row = panel(page).getByTestId('day-list').getByTestId('day-row').filter({ hasText: 'Работа' })
   await expect(row.getByTestId('row-note')).toHaveText('Стендап в 10:00')
 })

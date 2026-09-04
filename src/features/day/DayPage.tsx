@@ -81,6 +81,32 @@ export function DayPage() {
           renderDay={(d) => <DayContent date={d} today={today} nowMin={nowMin} tasks={tasks} overrides={overrides} {...actions} />}
         />
       )}
+      <div
+        className="fixed left-[max(1rem,calc(50%-224px))] z-30 flex items-center rounded-full bg-surface shadow-card"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 72px)' }}
+      >
+        <button
+          type="button"
+          aria-label="Предыдущий день"
+          onClick={() => pager.goPrev()}
+          className="flex size-14 items-center justify-center rounded-full text-text transition-transform duration-fast active:scale-95"
+        >
+          <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
+            <path d="M15 5l-7 7 7 7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <span className="h-6 w-px bg-border" aria-hidden />
+        <button
+          type="button"
+          aria-label="Следующий день"
+          onClick={() => pager.goNext()}
+          className="flex size-14 items-center justify-center rounded-full text-text transition-transform duration-fast active:scale-95"
+        >
+          <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
+            <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
       <button
         type="button"
         aria-label="Новая задача"

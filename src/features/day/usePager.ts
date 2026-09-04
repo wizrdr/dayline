@@ -31,6 +31,7 @@ export function usePager({ date, onChange }: PagerOptions): Pager {
   const gesture = useRef<Gesture>(IDLE)
   const settle = useRef<(() => void) | null>(null)
   const settleAt = useRef(0)
+  const queued = useRef<-1 | 1 | null>(null)
   useEffect(() => {
     latest.current = { date, onChange }
   })
@@ -56,13 +57,19 @@ export function usePager({ date, onChange }: PagerOptions): Pager {
         settle.current = null
         after?.()
         track.style.transition = 'none'
+        const next = queued.current
+        queued.current = null
+        if (next) go.current(next)
       }
       track.style.transition = SLIDE
       track.style.transform = transform
     }
 
     go.current = (dir) => {
-      if (settle.current) return
+      if (settle.current) {
+        queued.current = dir
+        return
+      }
       if (reducedMotion()) return commit(dir)
       slideTo(dir === 1 ? 'translateX(-200%)' : 'translateX(0%)', () => commit(dir))
     }
