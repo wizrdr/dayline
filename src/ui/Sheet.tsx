@@ -63,7 +63,7 @@ export function Sheet({ open, onClose, title, children, footer }: SheetProps) {
       }
     }
     document.addEventListener('keydown', onKey)
-    const first = panelRef.current?.querySelector<HTMLElement>(`${FOCUSABLE}:not([data-sheet-close])`)
+    const first = Array.from(panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []).find((el) => !el.hasAttribute('data-sheet-close'))
     ;(first ?? panelRef.current)?.focus()
     return () => {
       document.removeEventListener('keydown', onKey)
