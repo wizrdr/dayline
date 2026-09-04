@@ -2,12 +2,14 @@ import {
   ColorPicker,
   DurationField,
   Field,
+  IconPicker,
   Input,
   Segmented,
   Textarea,
   TimeField,
   Toggle,
   WeekdayPicker,
+  suggestIcon,
 } from '@/ui'
 import type { TaskDraft } from './useTaskDraft'
 
@@ -86,6 +88,10 @@ export function TaskForm({ draft, set, setRepeat }: TaskFormProps) {
 
       <Field label="Цвет">
         <ColorPicker value={draft.color} onChange={(color) => set({ color })} />
+      </Field>
+
+      <Field label="Иконка">
+        <IconPicker value={draft.icon ?? suggestIcon(draft.title)} color={draft.color} onChange={(icon) => set({ icon })} />
       </Field>
 
       <Field label="Заметка">

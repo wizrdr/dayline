@@ -1,6 +1,7 @@
 import type { NewRow } from '@/db/repo'
 import { fromISODate, toISODate } from '@/domain/dates'
-import type { ISODate, Task, TaskColor, Weekday } from '@/domain/types'
+import type { IconName, ISODate, Task, TaskColor, Weekday } from '@/domain/types'
+import { ICON_NAMES, suggestIcon } from '@/ui'
 
 export type ParseResult = { ok: true; tasks: NewRow<Task>[] } | { ok: false; errors: string[] }
 
@@ -36,10 +37,10 @@ export const EXAMPLE_JSON = JSON.stringify(
   {
     version: 1,
     tasks: [
-      { title: 'Anki', start: '09:00', duration: 30, color: 'green', repeat: 'daily', from: '2026-09-21' },
-      { title: 'Логистика переезда', start: '18:00', duration: '1h', color: 'blue', repeat: ['mon', 'tue', 'wed', 'thu'], from: '2026-09-21' },
-      { title: 'Большой блок', start: '11:00', duration: '3h', color: 'purple', repeat: ['sat'], from: '2026-09-21' },
-      { title: 'Обзор недели', start: '21:00', duration: 45, color: 'orange', repeat: ['sun'], from: '2026-09-21', remind: 10 },
+      { title: 'Anki', icon: 'cards', start: '09:00', duration: 30, color: 'green', repeat: 'daily', from: '2026-09-21' },
+      { title: 'Логистика переезда', icon: 'box', start: '18:00', duration: '1h', color: 'blue', repeat: ['mon', 'tue', 'wed', 'thu'], from: '2026-09-21' },
+      { title: 'Большой блок', icon: 'brain', start: '11:00', duration: '3h', color: 'purple', repeat: ['sat'], from: '2026-09-21' },
+      { title: 'Обзор недели', icon: 'pen', start: '21:00', duration: 45, color: 'orange', repeat: ['sun'], from: '2026-09-21', remind: 10 },
     ],
   },
   null,
@@ -87,6 +88,7 @@ function parseTask(raw: unknown, n: number, today: ISODate): TaskResult {
   const start_min = parseStart(raw.start, fail)
   const duration_min = parseDuration(raw.duration, fail)
   const color = parseColor(raw.color, fail)
+  const icon = parseIcon(raw.icon, title, fail)
   const note = parseNote(raw.note, fail)
   const remind_min_before = parseRemind(raw.remind, fail)
   const date = parseDateField(raw.date, 'date', fail)
@@ -99,7 +101,7 @@ function parseTask(raw: unknown, n: number, today: ISODate): TaskResult {
 
   if (errors.length) return { ok: false, errors }
 
-  const base = { title, note, color, start_min, duration_min, done: false, remind_min_before }
+  const base = { title, note, color, icon, start_min, duration_min, done: false, remind_min_before }
   if (weekdays) {
     return {
       ok: true,
@@ -149,6 +151,13 @@ function parseColor(v: unknown, fail: Fail): TaskColor {
   }
   fail(`неверный цвет ${quote(v)} (1..8 или red, orange, yellow, green, teal, blue, purple, pink)`)
   return 1
+}
+
+function parseIcon(v: unknown, title: string, fail: Fail): IconName {
+  if (v == null) return suggestIcon(title)
+  if (typeof v === 'string' && (ICON_NAMES as string[]).includes(v)) return v as IconName
+  fail(`неизвестная иконка ${quote(v)}`)
+  return 'star'
 }
 
 function parseNote(v: unknown, fail: Fail): string {

@@ -12,6 +12,7 @@ export function mkTask(partial: Partial<Task> = {}): Task {
     title: `Task ${seq}`,
     note: '',
     color: 1,
+    icon: null,
     date: null,
     start_min: null,
     duration_min: 60,

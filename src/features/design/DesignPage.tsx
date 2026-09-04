@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import type { TaskColor, Weekday } from '@/domain/types'
+import type { IconName, TaskColor, Weekday } from '@/domain/types'
 import {
   Button,
   Card,
@@ -7,11 +7,14 @@ import {
   ColorPicker,
   DurationField,
   Field,
+  ICON_NAMES,
   IconButton,
+  IconPicker,
   Input,
   Segmented,
   Sheet,
   TASK_COLORS,
+  TaskIcon,
   Textarea,
   TimeField,
   Toggle,
@@ -19,6 +22,7 @@ import {
   cn,
   taskBgClass,
   taskSoftBgClass,
+  taskTextClass,
 } from '@/ui'
 
 type ThemeMode = 'system' | 'light' | 'dark'
@@ -128,6 +132,7 @@ export default function DesignPage() {
   const [time, setTime] = useState<number | null>(9 * 60 + 30)
   const [duration, setDuration] = useState(45)
   const [sheet, setSheet] = useState(false)
+  const [icon, setIcon] = useState<IconName>('code')
 
   useEffect(() => applyTheme(theme), [theme])
 
@@ -178,6 +183,22 @@ export default function DesignPage() {
             <TaskBlock key={c} color={c} />
           ))}
         </div>
+      </Section>
+
+      <Section title="Иконки задач">
+        <div className="flex flex-wrap gap-2">
+          {ICON_NAMES.map((name) => (
+            <div key={name} className="flex w-16 flex-col items-center gap-1">
+              <span className={cn('flex size-[34px] items-center justify-center rounded-md', taskSoftBgClass[color], taskTextClass[color])}>
+                <TaskIcon name={name} />
+              </span>
+              <code className="text-xs text-faint">{name}</code>
+            </div>
+          ))}
+        </div>
+        <Row label="IconPicker">
+          <IconPicker value={icon} color={color} onChange={setIcon} />
+        </Row>
       </Section>
 
       <Section title="Button">

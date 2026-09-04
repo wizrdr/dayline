@@ -23,3 +23,5 @@ export { WeekdayPicker, WEEKDAYS, WEEKDAY_LABELS, type WeekdayPickerProps } from
 export { TimeField, type TimeFieldProps } from './TimeField'
 export { DurationField, type DurationFieldProps } from './DurationField'
 export { Sheet, type SheetProps } from './Sheet'
+export { TaskIcon, ICON_NAMES, suggestIcon } from './TaskIcon'
+export { IconPicker, type IconPickerProps } from './IconPicker'

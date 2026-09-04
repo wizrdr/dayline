@@ -55,7 +55,7 @@ describe('ImportSection', () => {
 
   it('replaces existing series with the same title when the toggle is on', async () => {
     const meta = { user_id: 'u1', updated_at: new Date().toISOString(), deleted_at: null, _dirty: 0 as const }
-    const base = { note: '', color: 1 as const, date: null, start_min: null, duration_min: 60, done: false, remind_min_before: null }
+    const base = { note: '', color: 1 as const, icon: null, date: null, start_min: null, duration_min: 60, done: false, remind_min_before: null }
     await db.tasks.bulkPut([
       { ...meta, ...base, id: 's1', title: 'anki', kind: 'series', weekdays: [1], start_date: '2026-01-01', end_date: null },
       { ...meta, ...base, id: 's2', title: 'Другое', kind: 'series', weekdays: [2], start_date: '2026-01-01', end_date: null },

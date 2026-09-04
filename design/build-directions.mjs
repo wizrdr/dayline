@@ -326,7 +326,7 @@ const dirs = []
 {
   const th = { ...light, font: SYS }
   dirs.push({
-    file: 'Main.dc.html', title: 'A · Лента', note: 'Карточки на вертикальной нити, иконка в мягком круге, прогресс у текущей. Самое близкое к привычному.',
+    file: 'A-Lenta.dc.html', title: 'A · Лента', note: 'Карточки на вертикальной нити, иконка в мягком круге, прогресс у текущей. Самое близкое к привычному.',
     html: shell({ ...th, header: headerBlock({ ...th }) + weekStrip({ ...th }) + nowLabel(th.muted, SOLID[2]), body: feed(th, { shadow: '0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04)' }), fab: fabBtn(th), tabStyle: tabs(th) }),
   })
 }
@@ -375,7 +375,7 @@ const dirs = []
 {
   const th = { ...light, font: SYS }
   dirs.push({
-    file: 'G-Fokus.dc.html', title: 'G · Фокус', note: 'Текущее дело — большая карточка с прогрессом и действиями, остальное компактным списком ниже.',
+    file: 'Main.dc.html', title: 'G · Фокус (выбран)', note: 'Текущее дело — большая карточка с прогрессом и действиями, остальное компактным списком ниже.',
     html: shell({ ...th, header: headerBlock({ ...th, sizeTitle: 28 }) + weekStrip({ ...th, pad: '0 20px 16px' }), body: hero(th), fab: fabBtn(th), tabStyle: tabs(th) }),
   })
 }
@@ -407,7 +407,15 @@ const dirs = []
 for (const d of dirs) writeFileSync(join(OUT, d.file), d.html)
 
 const W = 390, H = 844, GX = 120, GY = 200
-const artboards = dirs.map((d, i) => ({ file: d.file, title: d.title, x: (i % 5) * (W + GX), y: Math.floor(i / 5) * (H + GY), w: W, h: H }))
-const annotations = dirs.map((d, i) => ({ id: `note-${d.title[0].toLowerCase()}`, x: (i % 5) * (W + GX), y: Math.floor(i / 5) * (H + GY) + H + 24, w: W, text: `${d.title}\n${d.note}` }))
-writeFileSync(join(OUT, 'canvas.json'), JSON.stringify({ artboards, annotations, launch: { view: 'canvas' } }, null, 2))
+const chosen = dirs.find((d) => d.file === 'Main.dc.html')
+const others = dirs.filter((d) => d !== chosen)
+const artboards = [
+  { file: chosen.file, title: chosen.title, x: 0, y: 0, w: W, h: H, page: 'page-1' },
+  ...others.map((d, i) => ({ file: d.file, title: d.title, x: (i % 5) * (W + GX), y: Math.floor(i / 5) * (H + GY), w: W, h: H, page: 'page-2' })),
+]
+const annotations = [
+  { id: 'note-g', x: W + 60, y: 0, w: 320, text: `${chosen.title}\n${chosen.note}\n\nВыбран 04.09.2026. Реализуется в приложении.`, page: 'page-1' },
+  ...others.map((d, i) => ({ id: `note-${d.title[0].toLowerCase()}`, x: (i % 5) * (W + GX), y: Math.floor(i / 5) * (H + GY) + H + 24, w: W, text: `${d.title}\n${d.note}`, page: 'page-2' })),
+]
+writeFileSync(join(OUT, 'canvas.json'), JSON.stringify({ pages: [{ id: 'page-1', name: 'Выбранный' }, { id: 'page-2', name: 'Остальные варианты' }], artboards, annotations, launch: { view: 'canvas', page: 'page-1' } }, null, 2))
 console.log('written', dirs.length, 'artboards')

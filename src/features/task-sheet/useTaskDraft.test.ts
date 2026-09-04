@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
-import type { Task } from '@/domain/types'
+import { mkTask } from '@/domain/fixtures'
 import { diffDraft, draftReducer, initDraftState, useTaskDraft } from './useTaskDraft'
 
 const DATE = '2026-09-04'
@@ -56,24 +56,7 @@ describe('useTaskDraft', () => {
 
 describe('diffDraft', () => {
   it('returns only changed keys', () => {
-    const task: Task = {
-      id: 't1',
-      user_id: 'u1',
-      updated_at: '2026-01-01T00:00:00Z',
-      deleted_at: null,
-      title: 'A',
-      note: '',
-      color: 1,
-      date: DATE,
-      start_min: 540,
-      duration_min: 60,
-      done: false,
-      kind: 'single',
-      weekdays: null,
-      start_date: null,
-      end_date: null,
-      remind_min_before: null,
-    }
+    const task = mkTask({ title: 'A', date: DATE, start_min: 540 })
     const { draft } = initDraftState({ task, date: DATE })
     expect(diffDraft(draft, task)).toEqual({})
     expect(diffDraft({ ...draft, title: 'B', start_min: 600 }, task)).toEqual({ title: 'B', start_min: 600 })

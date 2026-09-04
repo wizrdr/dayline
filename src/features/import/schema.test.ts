@@ -21,6 +21,7 @@ describe('parseImport', () => {
     expect(tasks.every((t) => t.kind === 'series' && t.date === null)).toBe(true)
     expect(tasks[0]).toMatchObject({
       title: 'Anki',
+      icon: 'cards',
       start_min: 540,
       duration_min: 30,
       color: 4,
@@ -30,9 +31,9 @@ describe('parseImport', () => {
       done: false,
       remind_min_before: null,
     })
-    expect(tasks[1]).toMatchObject({ start_min: 1080, duration_min: 60, weekdays: [1, 2, 3, 4], color: 6 })
-    expect(tasks[2]).toMatchObject({ start_min: 660, duration_min: 180, weekdays: [6] })
-    expect(tasks[3]).toMatchObject({ start_min: 1260, duration_min: 45, weekdays: [7], remind_min_before: 10 })
+    expect(tasks[1]).toMatchObject({ start_min: 1080, duration_min: 60, weekdays: [1, 2, 3, 4], color: 6, icon: 'box' })
+    expect(tasks[2]).toMatchObject({ start_min: 660, duration_min: 180, weekdays: [6], icon: 'brain' })
+    expect(tasks[3]).toMatchObject({ start_min: 1260, duration_min: 45, weekdays: [7], remind_min_before: 10, icon: 'pen' })
   })
 
   it('accepts duration strings', () => {
@@ -58,6 +59,12 @@ describe('parseImport', () => {
       ]),
     )
     expect(tasks.map((t) => t.color)).toEqual([1, 8, 5, 1])
+  })
+
+  it('accepts a known icon, suggests one from the title when omitted, rejects unknown', () => {
+    const tasks = ok(JSON.stringify([{ title: 'x', icon: 'coffee' }, { title: 'Тренировка' }, { title: 'Что-то' }]))
+    expect(tasks.map((t) => t.icon)).toEqual(['coffee', 'dumbbell', 'star'])
+    expect(errors(JSON.stringify([{ title: 'x', icon: 'rocket' }]))).toEqual(['Задача 1: неизвестная иконка "rocket"'])
   })
 
   it('expands repeat aliases and Russian weekdays, sorted and unique', () => {

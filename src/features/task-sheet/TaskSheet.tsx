@@ -4,7 +4,7 @@ import { createTask, patchRow, softDeleteRow } from '@/db/repo'
 import type { DayItem, ISODate, Task } from '@/domain/types'
 import { useSession } from '@/features/auth/session'
 import { skipOccurrence } from '@/features/day/actions'
-import { Button, Sheet } from '@/ui'
+import { Button, Sheet, suggestIcon } from '@/ui'
 import { TaskForm } from './TaskForm'
 import { diffDraft, useTaskDraft } from './useTaskDraft'
 
@@ -36,7 +36,8 @@ export function TaskSheet({ open, onClose, task, date, item = null }: TaskSheetP
 
   function save() {
     if (!userId) return
-    const clean = { ...draft, title: draft.title.trim() }
+    const title = draft.title.trim()
+    const clean = { ...draft, title, icon: draft.icon ?? suggestIcon(title) }
     void run(async () => {
       if (task) {
         const patch = diffDraft(clean, task)

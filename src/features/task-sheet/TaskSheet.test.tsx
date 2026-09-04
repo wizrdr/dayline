@@ -33,8 +33,21 @@ describe('TaskSheet create', () => {
       start_min: null,
       duration_min: 60,
       color: 1,
+      icon: 'cart',
     })
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('pre-selects the suggested icon and saves a picked one', async () => {
+    render(<TaskSheet open onClose={() => {}} task={null} date="2026-09-04" />)
+    fireEvent.change(screen.getByLabelText('Название'), { target: { value: 'Тренировка' } })
+    expect(screen.getByRole('button', { name: 'dumbbell' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'coffee' }))
+    expect(screen.getByRole('button', { name: 'coffee' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }))
+
+    await waitFor(async () => expect(await db.tasks.count()).toBe(1))
+    expect((await db.tasks.toArray())[0]?.icon).toBe('coffee')
   })
 
   it('creates a series when repeat is toggled on', async () => {

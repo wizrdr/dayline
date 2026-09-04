@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { db } from '@/db/schema'
 import { todayISO } from '@/domain/dates'
+import { mkTask } from '@/domain/fixtures'
 import type { Task } from '@/domain/types'
 import { InboxPage } from './InboxPage'
 
@@ -12,25 +13,7 @@ vi.mock('@/features/task-sheet/TaskSheet', () => ({
 const USER = 'u1'
 
 function task(overrides: Partial<Task>): Task {
-  return {
-    id: crypto.randomUUID(),
-    user_id: USER,
-    updated_at: new Date().toISOString(),
-    deleted_at: null,
-    title: 'Задача',
-    note: '',
-    color: 1,
-    date: null,
-    start_min: null,
-    duration_min: 30,
-    done: false,
-    kind: 'single',
-    weekdays: null,
-    start_date: null,
-    end_date: null,
-    remind_min_before: null,
-    ...overrides,
-  }
+  return mkTask({ id: crypto.randomUUID(), user_id: USER, title: 'Задача', duration_min: 30, ...overrides })
 }
 
 describe('InboxPage', () => {

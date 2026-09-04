@@ -11,6 +11,7 @@ const taskInput = {
   title: 'Task',
   note: '',
   color: 1,
+  icon: null,
   date: '2026-09-04',
   start_min: 540,
   duration_min: 60,

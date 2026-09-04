@@ -20,6 +20,7 @@ export function emptyDraft(date: ISODate | null): TaskDraft {
     title: '',
     note: '',
     color: 1,
+    icon: null,
     date,
     start_min: null,
     duration_min: 60,

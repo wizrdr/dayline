@@ -3,6 +3,10 @@ export type ISOTime = string
 export type TaskKind = 'single' | 'series'
 export type TaskColor = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7
+export type IconName =
+  | 'cards' | 'box' | 'globe' | 'bowl' | 'book' | 'briefcase' | 'dumbbell' | 'run' | 'code' | 'phone'
+  | 'mail' | 'cart' | 'home' | 'heart' | 'coffee' | 'music' | 'pen' | 'users' | 'brain' | 'sun'
+  | 'moon' | 'star' | 'bell' | 'flag' | 'check'
 
 export interface SyncMeta {
   id: string
@@ -15,6 +19,7 @@ export interface Task extends SyncMeta {
   title: string
   note: string
   color: TaskColor
+  icon: IconName | null
   date: ISODate | null
   start_min: number | null
   duration_min: number
