@@ -1,22 +1,36 @@
 import type { ReactNode } from 'react'
 import { formatDuration, formatMin, formatRange } from '@/domain/dates'
-import type { DayItem } from '@/domain/types'
+import type { DayItem, TaskColor } from '@/domain/types'
 import { TaskIcon, cn, taskBgClass, taskSoftBgClass, taskTextClass } from '@/ui'
 import type { HeroState } from './heroState'
+import { plural } from './plural'
+
+// token utilities with an opacity modifier; kept here because the shared maps only carry solid variants
+const taskBorderSoftClass: Record<TaskColor, string> = {
+  1: 'border-task-1/30',
+  2: 'border-task-2/30',
+  3: 'border-task-3/30',
+  4: 'border-task-4/30',
+  5: 'border-task-5/30',
+  6: 'border-task-6/30',
+  7: 'border-task-7/30',
+  8: 'border-task-8/30',
+}
 
 interface HeroCardProps {
   state: HeroState
+  onOpen: (item: DayItem) => void
   onDone: (item: DayItem) => void
   onExtend: (item: DayItem) => void
   onStartNow: (item: DayItem) => void
 }
 
-export function HeroCard({ state, onDone, onExtend, onStartNow }: HeroCardProps) {
+export function HeroCard({ state, onOpen, onDone, onExtend, onStartNow }: HeroCardProps) {
   switch (state.kind) {
     case 'current':
-      return <CurrentCard state={state} onDone={onDone} onExtend={onExtend} />
+      return <CurrentCard state={state} onOpen={onOpen} onDone={onDone} onExtend={onExtend} />
     case 'next':
-      return <NextCard state={state} onStartNow={onStartNow} />
+      return <NextCard state={state} onOpen={onOpen} onDone={onDone} onStartNow={onStartNow} />
     case 'done':
       return <QuietCard title="На сегодня всё" hint={`${state.done} из ${state.total} выполнено`} />
     case 'empty':
@@ -28,10 +42,12 @@ export function HeroCard({ state, onDone, onExtend, onStartNow }: HeroCardProps)
 
 function CurrentCard({
   state,
+  onOpen,
   onDone,
   onExtend,
 }: {
   state: Extract<HeroState, { kind: 'current' }>
+  onOpen: (item: DayItem) => void
   onDone: (item: DayItem) => void
   onExtend: (item: DayItem) => void
 }) {
@@ -45,12 +61,14 @@ function CurrentCard({
       <Caps left="Сейчас" right={`ещё ${formatDuration(state.remaining)}`} className="opacity-90" />
       <Headline
         item={item}
+        onOpen={onOpen}
         tile={
           <div className="flex size-13 shrink-0 items-center justify-center rounded-md bg-on-color/20">
             <TaskIcon name={item.task.icon} size={28} />
           </div>
         }
         subClass="opacity-90"
+        noteClass="text-on-color/85"
       />
       <div className="h-1.5 overflow-hidden rounded-full bg-on-color/30" role="progressbar" aria-valuenow={Math.round(state.progress * 100)}>
         <div className="h-full bg-on-color" style={{ width: `${state.progress * 100}%` }} />
@@ -69,35 +87,53 @@ function CurrentCard({
 
 function NextCard({
   state,
+  onOpen,
+  onDone,
   onStartNow,
 }: {
   state: Extract<HeroState, { kind: 'next' }>
+  onOpen: (item: DayItem) => void
+  onDone: (item: DayItem) => void
   onStartNow: (item: DayItem) => void
 }) {
   const { item } = state
   const color = item.task.color
   return (
-    <section data-testid="hero" className="flex flex-col gap-3.5 rounded-lg border border-border bg-surface p-5 text-text shadow-card">
-      <Caps left={`Далее в ${formatMin(item.start_min ?? 0)}`} right={`через ${formatDuration(state.inMin)}`} className="text-faint" />
+    <section
+      data-testid="hero"
+      className={cn(
+        'flex flex-col gap-3.5 rounded-lg border p-5 text-text shadow-card',
+        taskSoftBgClass[color],
+        taskBorderSoftClass[color],
+      )}
+    >
+      <Caps left={`Далее в ${formatMin(item.start_min ?? 0)}`} right={`через ${formatDuration(state.inMin)}`} className={taskTextClass[color]} />
       <Headline
         item={item}
+        onOpen={onOpen}
         tile={
-          <div className={cn('flex size-13 shrink-0 items-center justify-center rounded-md', taskSoftBgClass[color], taskTextClass[color])}>
+          <div className={cn('flex size-13 shrink-0 items-center justify-center rounded-md', taskBgClass[color], 'text-on-color')}>
             <TaskIcon name={item.task.icon} size={28} />
           </div>
         }
         subClass="text-muted"
+        noteClass="text-muted"
       />
-      <Pill onClick={() => onStartNow(item)} className="bg-accent font-semibold text-accent-fg">
-        Начать сейчас
-      </Pill>
+      <div className="flex gap-2.5">
+        <Pill onClick={() => onStartNow(item)} className="bg-accent font-semibold text-accent-fg">
+          Начать сейчас
+        </Pill>
+        <Pill onClick={() => onDone(item)} className="bg-surface font-semibold text-text">
+          Готово
+        </Pill>
+      </div>
     </section>
   )
 }
 
 function QuietCard({ title, hint }: { title: string; hint?: string }) {
   return (
-    <section data-testid="hero" className="flex flex-col gap-1 rounded-lg border border-border bg-surface px-5 py-6 text-center">
+    <section data-testid="hero" className="flex flex-col gap-1 rounded-lg border border-accent/30 bg-accent-soft px-5 py-6 text-center">
       <div className="text-lg font-semibold text-text">{title}</div>
       {hint && <div className="text-sm text-muted">{hint}</div>}
     </section>
@@ -113,17 +149,35 @@ function Caps({ left, right, className }: { left: string; right: string; classNa
   )
 }
 
-function Headline({ item, tile, subClass }: { item: DayItem; tile: ReactNode; subClass: string }) {
+function Headline({
+  item,
+  onOpen,
+  tile,
+  subClass,
+  noteClass,
+}: {
+  item: DayItem
+  onOpen: (item: DayItem) => void
+  tile: ReactNode
+  subClass: string
+  noteClass: string
+}) {
+  const note = item.task.note.trim()
   return (
-    <div className="flex items-center gap-3.5">
+    <button type="button" onClick={() => onOpen(item)} className="flex items-center gap-3.5 text-left">
       {tile}
       <div className="flex min-w-0 flex-col gap-0.5">
         <div className="truncate text-xl font-bold leading-tight tracking-tight">{item.task.title}</div>
         {item.start_min !== null && (
           <div className={cn('text-sm', subClass)}>{formatRange(item.start_min, item.duration_min)}</div>
         )}
+        {note && (
+          <div data-testid="hero-note" className={cn('line-clamp-2 text-sm leading-snug', noteClass)}>
+            {note}
+          </div>
+        )}
       </div>
-    </div>
+    </button>
   )
 }
 
@@ -140,11 +194,4 @@ function Pill({ onClick, className, children }: { onClick: () => void; className
       {children}
     </button>
   )
-}
-
-function plural(n: number, one: string, few: string, many: string): string {
-  const m10 = n % 10
-  const m100 = n % 100
-  const word = m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? few : many
-  return `${n} ${word}`
 }

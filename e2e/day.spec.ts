@@ -3,12 +3,65 @@ import { expect, test, type Page } from '@playwright/test'
 const pad = (n: number) => String(n).padStart(2, '0')
 const hhmm = (min: number) => `${pad(Math.floor(min / 60) % 24)}:${pad(min % 60)}`
 
-async function createTask(page: Page, title: string, time?: string, durationLabel?: string) {
+async function createTask(page: Page, title: string, time?: string, durationLabel?: string, note?: string) {
   await page.getByRole('button', { name: 'Новая задача' }).click()
   await page.getByLabel('Название').fill(title)
   if (time) await page.locator('input[type=time]').first().fill(time)
   if (durationLabel) await page.getByRole('radio', { name: durationLabel }).click()
+  if (note) await page.getByLabel('Заметка').fill(note)
   await page.getByRole('button', { name: 'Сохранить' }).click()
+}
+
+// synthetic pointer events on the day root: a real touch swipe is not available in chromium's headless mobile emulation
+async function swipeDay(page: Page, dx: number) {
+  await page.getByTestId('day-root').evaluate((el, dx) => {
+    const base = { bubbles: true, pointerId: 7, pointerType: 'touch', isPrimary: true, clientY: 400 }
+    el.dispatchEvent(new PointerEvent('pointerdown', { ...base, clientX: 200 }))
+    el.dispatchEvent(new PointerEvent('pointermove', { ...base, clientX: 200 + dx / 2 }))
+    el.dispatchEvent(new PointerEvent('pointerup', { ...base, clientX: 200 + dx }))
+  }, dx)
+}
+
+const DENSE_DAY = JSON.stringify({
+  version: 1,
+  tasks: [
+    { title: 'Подъём и вода', icon: 'sun', start: '07:00', duration: 15, color: 'yellow', repeat: 'daily', from: '2026-01-01' },
+    { title: 'Зарядка', icon: 'dumbbell', start: '07:15', duration: 30, color: 'green', repeat: 'daily', from: '2026-01-01', note: 'Спина, плечи, 20 приседаний' },
+    { title: 'Завтрак', icon: 'bowl', start: '07:45', duration: 30, color: 'orange', repeat: 'daily', from: '2026-01-01' },
+    { title: 'Anki', icon: 'cards', start: '08:15', duration: 30, color: 'green', repeat: 'daily', from: '2026-01-01', note: 'Польский: 40 новых карточек' },
+    { title: 'Чтение', icon: 'book', start: '08:45', duration: 30, color: 'purple', repeat: 'daily', from: '2026-01-01' },
+    { title: 'Дорога / настройка дня', icon: 'pen', start: '09:15', duration: 15, color: 'blue', repeat: 'daily', from: '2026-01-01' },
+    { title: 'Работа', icon: 'briefcase', start: '09:30', duration: '7h 30m', color: 'blue', repeat: 'daily', from: '2026-01-01', note: 'Стендап в 10:00, ревью PR после обеда, синк с продуктом в 15:00' },
+    { title: 'Прогулка', icon: 'run', start: '17:00', duration: 30, color: 'teal', repeat: 'daily', from: '2026-01-01' },
+    { title: 'italki: урок английского', icon: 'globe', start: '17:30', duration: 45, color: 'pink', repeat: 'daily', from: '2026-01-01', note: 'Тема: собеседования, подготовить 3 вопроса' },
+    { title: 'Логистика переезда', icon: 'box', start: '18:15', duration: 45, color: 'blue', repeat: 'daily', from: '2026-01-01', note: 'PESEL, банк, договор аренды' },
+    { title: 'Ужин', icon: 'bowl', start: '19:00', duration: 45, color: 'orange', repeat: 'daily', from: '2026-01-01' },
+    { title: 'Side-проект', icon: 'code', start: '19:45', duration: '1h 15m', color: 'purple', repeat: 'daily', from: '2026-01-01', note: 'Dayline: свайп по дню, секции' },
+    { title: 'Звонок семье', icon: 'phone', start: '21:00', duration: 20, color: 'red', repeat: 'daily', from: '2026-01-01' },
+    { title: 'Аутрич / письма', icon: 'mail', start: '21:20', duration: 25, color: 'teal', repeat: 'daily', from: '2026-01-01' },
+    { title: 'Обзор дня', icon: 'pen', start: '21:45', duration: 15, color: 'orange', repeat: 'daily', from: '2026-01-01', note: 'Три строки в дневник' },
+    { title: 'Подкаст / музыка', icon: 'music', start: '22:00', duration: 30, color: 'pink', repeat: 'daily', from: '2026-01-01' },
+    { title: 'Уборка 10 минут', icon: 'home', start: '22:30', duration: 10, color: 'yellow', repeat: 'daily', from: '2026-01-01' },
+    { title: 'Чай без экрана', icon: 'coffee', start: '22:40', duration: 20, color: 'green', repeat: 'daily', from: '2026-01-01' },
+    { title: 'Сон', icon: 'moon', start: '23:00', duration: 15, color: 'purple', repeat: 'daily', from: '2026-01-01', note: 'Телефон в другую комнату' },
+    { title: 'Позвонить в банк', icon: 'phone', color: 'blue', date: new Date().toISOString().slice(0, 10), note: 'Уточнить лимит на перевод' },
+  ],
+})
+
+async function importDenseDay(page: Page) {
+  await page.goto('/settings')
+  await page.getByLabel('JSON для импорта').fill(DENSE_DAY)
+  await page.getByRole('button', { name: 'Импортировать' }).click()
+  await expect(page.getByText(/Импортировано 20/)).toBeVisible()
+  // record whether the empty-state text ever hits the DOM while Dexie is still loading
+  await page.addInitScript(() => {
+    ;(window as unknown as { __sawEmpty: boolean }).__sawEmpty = false
+    new MutationObserver(() => {
+      if (document.body?.textContent?.includes('День свободен')) (window as unknown as { __sawEmpty: boolean }).__sawEmpty = true
+    }).observe(document.documentElement, { childList: true, subtree: true, characterData: true })
+  })
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: /Сегодня/ })).toBeVisible()
 }
 
 test('create a timed task, see it in the day list, mark it done', async ({ page }) => {
@@ -50,6 +103,10 @@ test('a task running right now becomes the «Сейчас» hero', async ({ page
   await expect(hero.getByText('Фокус')).toBeVisible()
   await expect(hero.getByRole('button', { name: 'Готово' })).toBeVisible()
   await expect(page.getByTestId('day-list')).toHaveCount(0)
+
+  await hero.getByText('Фокус').click()
+  await expect(page.getByRole('dialog', { name: 'Задача' })).toBeVisible()
+  await expect(page.getByLabel('Название')).toHaveValue('Фокус')
 })
 
 test('focus layout screenshot', async ({ page }, testInfo) => {
@@ -63,4 +120,89 @@ test('focus layout screenshot', async ({ page }, testInfo) => {
   await expect(page.getByTestId('hero').getByText('Сейчас')).toBeVisible()
   await expect(page.getByTestId('untimed-list')).toBeVisible()
   await page.screenshot({ path: 'test-results/day-focus.png' })
+})
+
+test('swiping the day root switches the day in the natural direction', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: /Сегодня/ })).toBeVisible()
+
+  await swipeDay(page, -120)
+  await expect(page.getByRole('heading', { name: 'Завтра' })).toBeVisible()
+  await expect(page.getByText('Расписание').or(page.getByText('День свободен'))).toBeVisible()
+
+  await swipeDay(page, 120)
+  await swipeDay(page, 120)
+  await expect(page.getByRole('heading', { name: 'Вчера' })).toBeVisible()
+
+  // a short or vertical-dominant gesture does nothing
+  await swipeDay(page, 30)
+  await expect(page.getByRole('heading', { name: 'Вчера' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Сегодня' }).click()
+  await expect(page.getByRole('heading', { name: 'Сегодня' })).toBeVisible()
+})
+
+test('the note shows up as a second line in the row', async ({ page }) => {
+  await page.goto('/')
+  const hour = new Date().getHours()
+  await createTask(page, 'Раньше', hhmm(((hour + 2) % 24) * 60))
+  await createTask(page, 'Работа', hhmm(((hour + 3) % 24) * 60), undefined, 'Стендап в 10:00')
+  const row = page.getByTestId('day-list').getByTestId('day-row').filter({ hasText: 'Работа' })
+  await expect(row.getByTestId('row-note')).toHaveText('Стендап в 10:00')
+})
+
+test('dense day: past section collapses, hero and note render in both themes', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'iphone')
+  await importDenseDay(page)
+
+  const hour = new Date().getHours()
+  if (hour >= 8 && hour < 23) {
+    const summary = page.getByRole('button', { name: /раньше · \d+ выполнено/ })
+    await expect(summary).toBeVisible()
+    await expect(page.getByText('Раньше сегодня')).toBeVisible()
+  }
+  await expect(page.getByTestId('hero')).toBeVisible()
+  await expect(page.getByTestId('untimed-list').getByTestId('row-note')).toHaveText('Уточнить лимит на перевод')
+  expect(await page.evaluate(() => (window as unknown as { __sawEmpty: boolean }).__sawEmpty)).toBe(false)
+
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.screenshot({ path: 'test-results/day-dense-dark.png' })
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.screenshot({ path: 'test-results/day-dense-light.png' })
+
+  // finishing the current block promotes the next one: the tinted «Далее» card
+  if (hour >= 7 && hour < 23) {
+    await page.getByTestId('hero').getByRole('button', { name: 'Готово' }).click()
+    await expect(page.getByTestId('hero').getByText(/Далее в/)).toBeVisible()
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await page.screenshot({ path: 'test-results/day-dense-next-dark.png' })
+    await page.emulateMedia({ colorScheme: 'light' })
+    await page.screenshot({ path: 'test-results/day-dense-next-light.png' })
+  }
+
+  const summary = page.getByRole('button', { name: /раньше · \d+ выполнено/ })
+  if (await summary.isVisible()) {
+    await summary.click()
+    await expect(page.getByTestId('past-list')).toBeVisible()
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await page.screenshot({ path: 'test-results/day-dense-dark-expanded.png' })
+  }
+
+  await swipeDay(page, -120)
+  await expect(page.getByRole('heading', { name: 'Завтра' })).toBeVisible()
+  await expect(page.getByText('Расписание')).toBeVisible()
+  await page.waitForTimeout(300)
+  await page.screenshot({ path: 'test-results/day-dense-tomorrow-dark.png' })
+})
+
+test('desktop FAB hugs the centered column', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop')
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: /Сегодня/ })).toBeVisible()
+  const fab = await page.getByRole('button', { name: 'Новая задача' }).boundingBox()
+  expect(fab).not.toBeNull()
+  // column is 480px wide centered: right edge at 960px; FAB right edge = 1440 - (720 - 224) = 944
+  expect(Math.round(fab!.x + fab!.width)).toBe(944)
+  await page.screenshot({ path: 'test-results/day-desktop.png' })
 })

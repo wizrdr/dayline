@@ -6,6 +6,12 @@ export function useTasks(): Task[] {
   return useLiveQuery(listTasks, []) ?? []
 }
 
+// useLiveQuery yields undefined until Dexie answers; `loaded` lets screens show a skeleton instead of an empty state
+export function useTasksState(): { tasks: Task[]; loaded: boolean } {
+  const tasks = useLiveQuery(listTasks, [])
+  return { tasks: tasks ?? [], loaded: tasks !== undefined }
+}
+
 export function useOverrides(): TaskOverride[] {
   return useLiveQuery(listOverrides, []) ?? []
 }

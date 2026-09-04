@@ -1,9 +1,7 @@
-import { useRef, type PointerEvent } from 'react'
 import { WEEKDAY_SHORT_RU, addDaysISO, fromISODate, isoWeekday, todayISO, weekDaysAround } from '@/domain/dates'
 import type { ISODate } from '@/domain/types'
 import { IconButton, cn } from '@/ui'
-
-const SWIPE_PX = 40
+import { useSwipe } from './useSwipe'
 
 export interface DateStripProps {
   date: ISODate
@@ -13,34 +11,15 @@ export interface DateStripProps {
 export function DateStrip({ date, onChange }: DateStripProps) {
   const today = todayISO()
   const days = weekDaysAround(date)
-  const swipeStart = useRef<{ id: number; x: number } | null>(null)
-
   const shiftWeek = (weeks: number) => onChange(addDaysISO(date, weeks * 7))
-
-  const onPointerDown = (e: PointerEvent) => {
-    swipeStart.current = { id: e.pointerId, x: e.clientX }
-  }
-  const onPointerUp = (e: PointerEvent) => {
-    const start = swipeStart.current
-    swipeStart.current = null
-    if (!start || start.id !== e.pointerId) return
-    const dx = e.clientX - start.x
-    if (Math.abs(dx) >= SWIPE_PX) shiftWeek(dx < 0 ? 1 : -1)
-  }
+  const swipe = useSwipe(() => shiftWeek(1), () => shiftWeek(-1), { ignoreInteractive: false })
 
   return (
-    <div className="flex items-center gap-1 px-2 py-1">
-      <IconButton label="Предыдущая неделя" size="sm" onClick={() => shiftWeek(-1)}>
+    <div className="flex items-center py-1">
+      <IconButton label="Предыдущая неделя" onClick={() => shiftWeek(-1)}>
         <span aria-hidden className="text-xl leading-none">‹</span>
       </IconButton>
-      <div
-        data-testid="date-strip"
-        className="flex flex-1 justify-between"
-        style={{ touchAction: 'pan-y' }}
-        onPointerDown={onPointerDown}
-        onPointerUp={onPointerUp}
-        onPointerCancel={() => (swipeStart.current = null)}
-      >
+      <div data-testid="date-strip" className="flex flex-1 justify-between" {...swipe}>
         {days.map((d) => {
           const selected = d === date
           const isToday = d === today
@@ -70,7 +49,7 @@ export function DateStrip({ date, onChange }: DateStripProps) {
           )
         })}
       </div>
-      <IconButton label="Следующая неделя" size="sm" onClick={() => shiftWeek(1)}>
+      <IconButton label="Следующая неделя" onClick={() => shiftWeek(1)}>
         <span aria-hidden className="text-xl leading-none">›</span>
       </IconButton>
     </div>

@@ -18,7 +18,7 @@ export function DayRow({ item, sub, onOpen, onToggleDone }: DayRowProps) {
         <Tile className={cn(taskSoftBgClass[color], taskTextClass[color])}>
           <TaskIcon name={item.task.icon} size={18} />
         </Tile>
-        <RowText title={item.task.title} sub={sub} className={item.done ? 'line-through opacity-55' : 'text-text'} />
+        <RowText title={item.task.title} sub={sub} note={item.task.note} className={item.done ? 'line-through opacity-55' : 'text-text'} />
       </button>
       <DoneButton done={item.done} color={color} onToggle={() => onToggleDone(item)} className="-mr-2.5" />
     </li>
@@ -51,11 +51,19 @@ function Tile({ className, children }: { className: string; children: ReactNode 
   return <div className={cn('flex size-[34px] shrink-0 items-center justify-center rounded-md', className)}>{children}</div>
 }
 
-function RowText({ title, sub, className }: { title: string; sub?: string; className: string }) {
+// one compact sub line «time · note», truncated together so every row keeps the same height
+function RowText({ title, sub, note, className }: { title: string; sub?: string; note?: string; className: string }) {
+  const hasNote = Boolean(note?.trim())
   return (
     <div className="min-w-0 flex-1">
       <div className={cn('truncate text-[15px] font-semibold leading-snug', className)}>{title}</div>
-      {sub && <div className="text-xs text-faint">{sub}</div>}
+      {(sub || hasNote) && (
+        <div className="truncate text-xs text-faint">
+          {sub && <span>{sub}</span>}
+          {sub && hasNote && <span aria-hidden> · </span>}
+          {hasNote && <span data-testid="row-note">{note}</span>}
+        </div>
+      )}
     </div>
   )
 }

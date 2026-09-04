@@ -45,6 +45,8 @@ describe('dates', () => {
     expect(formatMin(540)).toBe('09:00')
     expect(formatMin(0)).toBe('00:00')
     expect(formatRange(540, 90)).toBe('09:00–10:30')
+    expect(formatRange(1410, 60)).toBe('23:30–00:30')
+    expect(formatRange(0, 1440)).toBe('00:00–24:00')
   })
 
   it('formatDuration variants', () => {

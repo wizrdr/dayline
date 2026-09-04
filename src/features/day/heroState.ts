@@ -9,6 +9,7 @@ export type HeroState =
   | { kind: 'summary'; count: number; totalMin: number }
 
 export function heroState(items: DayItem[], isToday: boolean, nowMin: number): HeroState {
+  if (items.length === 0) return { kind: 'empty' }
   if (!isToday) {
     return { kind: 'summary', count: items.length, totalMin: items.reduce((s, i) => s + i.duration_min, 0) }
   }
@@ -23,7 +24,6 @@ export function heroState(items: DayItem[], isToday: boolean, nowMin: number): H
     }
   }
   if (next?.start_min != null) return { kind: 'next', item: next, inMin: next.start_min - nowMin }
-  if (items.length === 0) return { kind: 'empty' }
   return { kind: 'done', done: items.filter((i) => i.done).length, total: items.length }
 }
 

@@ -76,10 +76,7 @@ export function TaskSheet({ open, onClose, task, date, item = null }: TaskSheetP
       <TaskForm draft={draft} set={set} setRepeat={setRepeat} />
       {isOccurrence && (
         <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
-          <p className="text-sm text-muted">
-            Время и длительность меняются для всей серии. Перенести на один день можно перетаскиванием на
-            таймлайне.
-          </p>
+          <p className="text-sm text-muted">Время и длительность меняются для всей серии.</p>
           <Button variant="soft" size="sm" disabled={busy} onClick={skip}>
             Пропустить в этот день
           </Button>

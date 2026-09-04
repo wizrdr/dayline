@@ -35,7 +35,8 @@ export function formatMin(min: number): string {
 }
 
 export function formatRange(start: number, duration: number): string {
-  return `${formatMin(start)}–${formatMin(start + duration)}`
+  const end = start + duration
+  return `${formatMin(start)}–${end === 1440 ? '24:00' : formatMin(end)}`
 }
 
 export function formatDuration(min: number): string {
