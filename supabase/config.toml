@@ -28,3 +28,10 @@ enable_confirmations = false
 [edge_runtime]
 enabled = true
 policy = "oneshot"
+
+[functions.ics]
+import_map = "./functions/deno.json"
+
+[functions.remind]
+import_map = "./functions/deno.json"
+verify_jwt = false

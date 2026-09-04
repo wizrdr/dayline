@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useSession } from '@/features/auth/session'
+import { useCalendarSync } from '@/features/calendar/useCalendarSync'
 import { db } from '@/db/schema'
 import { setUserId } from '@/db/repo'
 import { createSync, type SyncStatus } from '@/sync/sync'
@@ -22,6 +23,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     sync.start()
     return () => sync.stop()
   }, [user])
+
+  useCalendarSync()
 
   return <SyncContext.Provider value={status}>{children}</SyncContext.Provider>
 }
